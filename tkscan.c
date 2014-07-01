@@ -32,7 +32,7 @@ bva_t *crea_bva(void)
     bva_t *sr=malloc(sizeof(bva_t)); /* short read */
     sr->bca=malloc(HBUF*sizeof(char));
     sr->va=malloc(HBUF*sizeof(char));
-    sr->sz=HBUF;
+    sr->sz=0;
     return sr;
 }
 
@@ -151,7 +151,7 @@ cl_t *creaclstr(char *stg, int ssz) /* create empty ring of size ssz */
     return mou;
 }
 
-inline void stopatma(FILE *fin, char *str2ma, size_t *sqidx, char **ca)
+inline void stopatma(FILE *fin, char *str2ma, size_t *sqidx, char **ca, unsigned *casz)
 {
     int c;
     int ssz=0;
@@ -166,7 +166,7 @@ inline void stopatma(FILE *fin, char *str2ma, size_t *sqidx, char **ca)
     cl_t *mou=creacl(ssz);
     unsigned nmoves=0;
     while( ( (c = fgetc(fin)) != EOF) ) {
-        CONREALLOC(nmoves, cbuf, HBUF, tca, char);
+        CONDREALLOC(nmoves, cbuf, HBUF, tca, char);
         tca[nmoves]=c;
         mou->c = c;
         if((mou->n->c) && (cmpcl(mou, d2ma))) {
@@ -183,6 +183,7 @@ inline void stopatma(FILE *fin, char *str2ma, size_t *sqidx, char **ca)
 
 outro:    
     *sqidx+=nmoves-ssz+1;
+    *casz=nmoves;
     free(scanstr);
     freering(mou);
     freering(d2ma);
@@ -200,9 +201,15 @@ int main(int argc, char *argv[])
 
     FILE *fin=fopen(argv[1], "r");
 
-    stopatma(fin, argv[2], &sqidx);
+    bva_t *a=crea_bva();
+    stopatma(fin, argv[2], &sqidx, &(a->bca), &(a->sz));
     printf("Match found starting at charidx=%zu\n", sqidx);
     fclose(fin);
+
+    int i;
+    for(i=0;i<a->sz;++i) 
+       putchar(a->bca[i]);
+    free_bva(a);
 
     return 0;
 }
