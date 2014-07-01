@@ -5,6 +5,13 @@
 #define HBUF 4 /* harshly sized buffer */
 #define GBUF 32
 
+/* Quick macro for conditionally enlarging an array */
+#define CONDREALLOC(x, b, c, a, t); \
+    if((x)==((b)-1)) { \
+        (b) += (c); \
+        (a)=realloc((a), (b)*sizeof(t)); \
+    }
+
 struct cl /* "character link" structure ... a linked list of characters ... essentially this is the token scanner. Links are looped into a ring equal to the szie of the token */
 {
     char c;
@@ -36,7 +43,6 @@ void free_bva(bva_t *sr)
     free(sr->va);
     free(sr);
 }
-
 
 char *scas(char *s, int *sz) /* a function to scan the token strings and convert newlines double symbols to their proper 0x0A equivalents. Also the size is returned in the arguments */
 {
@@ -145,10 +151,12 @@ cl_t *creaclstr(char *stg, int ssz) /* create empty ring of size ssz */
     return mou;
 }
 
-inline void stopatma(FILE *fin, char *str2ma, size_t *sqidx)
+inline void stopatma(FILE *fin, char *str2ma, size_t *sqidx, char **ca)
 {
     int c;
     int ssz=0;
+    int cbuf=HBUF;
+    char *tca=*ca;
     char *scanstr=scas(str2ma, &ssz);
     if(ssz<1) {
         printf("Error. The sliding window must be 1 or more.\n");
@@ -158,6 +166,8 @@ inline void stopatma(FILE *fin, char *str2ma, size_t *sqidx)
     cl_t *mou=creacl(ssz);
     unsigned nmoves=0;
     while( ( (c = fgetc(fin)) != EOF) ) {
+        CONREALLOC(nmoves, cbuf, HBUF, tca, char);
+        tca[nmoves]=c;
         mou->c = c;
         if((mou->n->c) && (cmpcl(mou, d2ma))) {
             // printf("yes: at %zu\n", sqidx);
@@ -167,7 +177,7 @@ inline void stopatma(FILE *fin, char *str2ma, size_t *sqidx)
         nmoves++;
     }
 
-    printf("Abnormal c or unplanned EOF was reached. ");
+    printf("Abnormal c or no match or unplanned EOF was reached. ");
     printf("Last seen c was %x\n", c); 
     exit(EXIT_FAILURE);
 
