@@ -19,11 +19,12 @@ struct cl /* "character link" structure ... a linked list of characters ... esse
 };
 typedef struct cl cl_t;
 
-typedef struct
+typedef struct /* bva_t */
 {
     char *bca; /* base call array */
     char *va; /* value array */;
     unsigned sz;
+    unsigned bf;
 } bva_t; /* base value array type */
 
 
@@ -33,6 +34,7 @@ bva_t *crea_bva(void)
     sr->bca=malloc(HBUF*sizeof(char));
     sr->va=malloc(HBUF*sizeof(char));
     sr->sz=0;
+    sr->bf=HBUF;
     return sr;
 }
 
@@ -151,12 +153,9 @@ cl_t *creaclstr(char *stg, int ssz) /* create empty ring of size ssz */
     return mou;
 }
 
-inline void stopatma(FILE *fin, char *str2ma, size_t *sqidx, char **ca, unsigned *casz)
+inline void stopatma(FILE *fin, char *str2ma, size_t *sqidx, bva_t *pa)
 {
-    int c;
-    int ssz=0;
-    int cbuf=HBUF;
-    char *tca=*ca;
+    int c, ssz;
     char *scanstr=scas(str2ma, &ssz);
     if(ssz<1) {
         printf("Error. The sliding window must be 1 or more.\n");
@@ -166,8 +165,8 @@ inline void stopatma(FILE *fin, char *str2ma, size_t *sqidx, char **ca, unsigned
     cl_t *mou=creacl(ssz);
     unsigned nmoves=0;
     while( ( (c = fgetc(fin)) != EOF) ) {
-        CONDREALLOC(nmoves, cbuf, HBUF, tca, char);
-        tca[nmoves]=c;
+        CONDREALLOC(nmoves, pa->bf, HBUF, pa->bca, char);
+        pa->bca[nmoves]=c;
         mou->c = c;
         if((mou->n->c) && (cmpcl(mou, d2ma))) {
             // printf("yes: at %zu\n", sqidx);
@@ -183,7 +182,8 @@ inline void stopatma(FILE *fin, char *str2ma, size_t *sqidx, char **ca, unsigned
 
 outro:    
     *sqidx+=nmoves-ssz+1;
-    *casz=nmoves;
+    pa->sz=nmoves-ssz+1;
+    pa->bca=realloc(pa->bca, pa->sz*sizeof(char));
     free(scanstr);
     freering(mou);
     freering(d2ma);
@@ -201,15 +201,16 @@ int main(int argc, char *argv[])
 
     FILE *fin=fopen(argv[1], "r");
 
-    bva_t *a=crea_bva();
-    stopatma(fin, argv[2], &sqidx, &(a->bca), &(a->sz));
+    bva_t *pa=crea_bva();
+    stopatma(fin, argv[2], &sqidx, pa);
     printf("Match found starting at charidx=%zu\n", sqidx);
     fclose(fin);
 
     int i;
-    for(i=0;i<a->sz;++i) 
-       putchar(a->bca[i]);
-    free_bva(a);
+    for(i=0;i<pa->sz;++i) 
+       putchar(pa->bca[i]);
+    putchar('\n');
+    free_bva(pa);
 
     return 0;
 }
