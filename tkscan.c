@@ -238,33 +238,36 @@ int main(int argc, char *argv[])
     }
     size_t sqidx=0;
     char *nxtok;
+    int i;
 
     FILE *fin=fopen(argv[1], "r");
 
-    bva_t *pa=crea_bva();
+    bva_t **paa=malloc(1*sizeof(bva_t));
+    for(i=0;i<1;++i) 
+        paa[i]=crea_bva();
 
     /* we want to catch the first title line */
-    if( firstread(fin, pa)) {
+    if( firstread(fin, paa[0])) {
         printf("Error on reading first line, no @ symbol forthcoming\n");
         exit(EXIT_FAILURE);
     }
 
     nxtok=ENDB;
-    fillbctoma(fin, nxtok, &sqidx, pa);
-    ncharstova(fin, pa, pa->sz); /* read a number of chars to the value array */
+    fillbctoma(fin, nxtok, &sqidx, paa[0]);
+    ncharstova(fin, paa[0], paa[0]->sz); /* read a number of chars to the value array */
     fclose(fin);
 
-    int i;
-    for(i=0;i<pa->idsz;++i) 
-        putchar(pa->id[i]);
+    for(i=0;i<paa[0]->idsz;++i) 
+        putchar(paa[0]->id[i]);
     putchar('\n');
-    for(i=0;i<pa->sz;++i) 
-        putchar(pa->bca[i]);
+    for(i=0;i<paa[0]->sz;++i) 
+        putchar(paa[0]->bca[i]);
     putchar('\n');
-    for(i=0;i<pa->sz;++i) 
-        putchar(pa->va[i]);
+    for(i=0;i<paa[0]->sz;++i) 
+        putchar(paa[0]->va[i]);
     putchar('\n');
-    free_bva(pa);
+    free_bva(paa[0]);
+    free(paa);
 
     return 0;
 }
