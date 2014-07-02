@@ -5,6 +5,8 @@
 #define HBUF 4 /* harshly sized buffer */
 #define GBUF 32
 
+#define ENDB "\n+\n"
+
 /* Quick macro for conditionally enlarging an array */
 #define CONDREALLOC(x, b, c, a, t); \
     if((x)==((b)-1)) { \
@@ -21,9 +23,11 @@ typedef struct cl cl_t;
 
 typedef struct /* bva_t */
 {
+    char *id; /* id line */
     char *bca; /* base call array */
     char *va; /* value array */;
     unsigned sz;
+    unsigned idsz;
     unsigned bf;
 } bva_t; /* base value array type */
 
@@ -31,9 +35,11 @@ typedef struct /* bva_t */
 bva_t *crea_bva(void)
 {
     bva_t *sr=malloc(sizeof(bva_t)); /* short read */
+    sr->id=malloc(HBUF*sizeof(char));
     sr->bca=malloc(HBUF*sizeof(char));
-    sr->va=malloc(HBUF*sizeof(char));
+    sr->va=NULL; /* this will be malloc'd when we know the size of the base call array */
     sr->sz=0;
+    sr->idsz=0;
     sr->bf=HBUF;
     return sr;
 }
@@ -41,6 +47,7 @@ bva_t *crea_bva(void)
 
 void free_bva(bva_t *sr)
 {
+    free(sr->id);
     free(sr->bca);
     free(sr->va);
     free(sr);
@@ -153,7 +160,7 @@ cl_t *creaclstr(char *stg, int ssz) /* create empty ring of size ssz */
     return mou;
 }
 
-inline void stopatma(FILE *fin, char *str2ma, size_t *sqidx, bva_t *pa)
+inline char fillbctoma(FILE *fin, char *str2ma, size_t *sqidx, bva_t *pa) /* fill base call array till match */
 {
     int c, ssz;
     char *scanstr=scas(str2ma, &ssz);
@@ -166,8 +173,7 @@ inline void stopatma(FILE *fin, char *str2ma, size_t *sqidx, bva_t *pa)
     unsigned nmoves=0;
     while( ( (c = fgetc(fin)) != EOF) ) {
         CONDREALLOC(nmoves, pa->bf, HBUF, pa->bca, char);
-        pa->bca[nmoves]=c;
-        mou->c = c;
+        pa->bca[nmoves]=mou->c= c;
         if((mou->n->c) && (cmpcl(mou, d2ma))) {
             // printf("yes: at %zu\n", sqidx);
             goto outro;
@@ -178,7 +184,7 @@ inline void stopatma(FILE *fin, char *str2ma, size_t *sqidx, bva_t *pa)
 
     printf("Abnormal c or no match or unplanned EOF was reached. ");
     printf("Last seen c was %x\n", c); 
-    exit(EXIT_FAILURE);
+    return 1;
 
 outro:    
     *sqidx+=nmoves-ssz+1;
@@ -188,27 +194,75 @@ outro:
     freering(mou);
     freering(d2ma);
 
+    return 0;
+}
+
+void ncharstova(FILE *fin, bva_t *pa, int nchars) /* read a number of chars to the value array */
+{
+    int c;
+    unsigned cidx=0;
+    pa->va=malloc(nchars*sizeof(char));
+    while( ( cidx!= nchars) ) {
+        c = fgetc(fin);
+        pa->va[cidx++]=c;
+    }
     return;
+}
+
+char firstread(FILE *fin, bva_t *pa) /* read a number of chars to the value array */
+{
+    int c;
+    char STATE=0;
+    unsigned cidx=0;
+    unsigned idbuf=HBUF;
+    while( (c = fgetc(fin)) !='\n' ) {
+        if( (c=='@') && !STATE)
+            STATE=1;
+        if(STATE) {
+            CONDREALLOC(cidx, idbuf, HBUF, pa->id, char);
+            pa->id[cidx++]=c;
+        }
+    }
+    if(!STATE)
+        return 1;
+    pa->idsz=cidx;
+    pa->id=realloc(pa->id, pa->idsz*sizeof(char));
+    return 0;
 }
 
 int main(int argc, char *argv[])
 {
-    if(argc!=3) {
-        printf("Error. Pls supply 2 arguments: 1) name of text file 2) token string to match\n");
+    if(argc!=2) {
+        printf("Error. Pls supply 1 argument: name of FASTQ file.\n");
         exit(EXIT_FAILURE);
     }
     size_t sqidx=0;
+    char *nxtok;
 
     FILE *fin=fopen(argv[1], "r");
 
     bva_t *pa=crea_bva();
-    stopatma(fin, argv[2], &sqidx, pa);
-    printf("Match found starting at charidx=%zu\n", sqidx);
+
+    /* we want to catch the first title line */
+    if( firstread(fin, pa)) {
+        printf("Error on reading first line, no @ symbol forthcoming\n");
+        exit(EXIT_FAILURE);
+    }
+
+    nxtok=ENDB;
+    fillbctoma(fin, nxtok, &sqidx, pa);
+    ncharstova(fin, pa, pa->sz); /* read a number of chars to the value array */
     fclose(fin);
 
     int i;
+    for(i=0;i<pa->idsz;++i) 
+        putchar(pa->id[i]);
+    putchar('\n');
     for(i=0;i<pa->sz;++i) 
-       putchar(pa->bca[i]);
+        putchar(pa->bca[i]);
+    putchar('\n');
+    for(i=0;i<pa->sz;++i) 
+        putchar(pa->va[i]);
     putchar('\n');
     free_bva(pa);
 
