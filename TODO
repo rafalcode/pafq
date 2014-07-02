@@ -1,0 +1,3 @@
+
+* use the zlib library to also accept an fq.gz file.
+* Apply the parser to ased on value calls. Outputting to a FASTA file. 

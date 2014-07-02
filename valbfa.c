@@ -1,12 +1,19 @@
+/* use the tkscan parser to programm a fq to fasta generator
+ * which will separate base calls based on their value
+ * Bit of a pipe dream at the moment */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef DBG
 #define EBUF 2
 #define HBUF 4 /* harshly sized buffer */
-#define GBUF 32
+#else /* not so harsh values now */
+#define EBUF 16
+#define HBUF 32
+#endif
 
-#define ENDB "\n+\n"
+#define ENDB "\n+\n" /* this is the key toaken that separates base call from qualval */
 
 /* Quick macro for conditionally enlarging an array */
 #define CONDREALLOC(x, b, c, a, t); \
@@ -15,7 +22,8 @@
         (a)=realloc((a), (b)*sizeof(t)); \
     }
 
-typedef struct {
+typedef struct
+{
     char mn, mx;
 } mnx_t; /* Min and max value type */
 
@@ -215,13 +223,22 @@ outro:
     return 0;
 }
 
-void ncharstova(FILE *fin, bva_t *pa, unsigned nchars, mnx_t *mnx) /* read a number of chars to the value array */
+unsigned ncharstova(FILE *fin, bva_t *pa, unsigned nchars, mnx_t *mnx, char mnv, char gv, last) /* mnv will be the min value, gv is a state variable ... read a number of chars to the value array */
 {
     int c;
     unsigned cidx=0;
     pa->va=malloc(nchars*sizeof(char));
     while( ( cidx!= nchars) ) {
         c = fgetc(fin);
+
+        if(gv) {
+            if( c<mnv)
+                break;
+        } else {
+            if( c>=mnv)
+                break;
+        }
+
         pa->va[cidx]=c;
         if(pa->va[cidx]>mnx->mx)
             mnx->mx = pa->va[cidx];
@@ -229,7 +246,7 @@ void ncharstova(FILE *fin, bva_t *pa, unsigned nchars, mnx_t *mnx) /* read a num
             mnx->mn = pa->va[cidx];
         cidx++;
     }
-    return;
+    return cidx;
 }
 
 char fillidtonl(FILE *fin, bva_t *pa) /* read a number of chars to the value array */

@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-g -Wall# -pg # note the gprof option
-EXES=tkscan
+EXES=tkscan tkscan_dbg
 
 tkscan: tkscan.c
 	${CC} ${CFLAGS} -o $@ $^
