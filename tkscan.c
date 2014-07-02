@@ -257,7 +257,7 @@ int main(int argc, char *argv[])
     }
     size_t sqidx=0;
     unsigned ecou=0, ebuf=EBUF;
-    char *nxtok, retval;
+    char *nxtok, retval, yesuniform=1;
     int i, c;
 
     FILE *fin=fopen(argv[1], "r");
@@ -286,8 +286,9 @@ int main(int argc, char *argv[])
 
         nxtok=ENDB;
         fillbctoma(fin, nxtok, &sqidx, paa[ecou]);
-       // if(ecou!= 0) /* check for uniformity of the sequence sizes */
-       //     if
+        if(ecou!= 0) /* check for uniformity of the sequence sizes */
+            if(paa[ecou]->sz != paa[0]->sz)
+                yesuniform=0;
         ncharstova(fin, paa[ecou], paa[ecou]->sz); /* read a number of chars to the value array */
         ecou++;
         if( (c=fgetc(fin)) == EOF )
@@ -306,6 +307,8 @@ int main(int argc, char *argv[])
     paa=realloc(paa, ecou*sizeof(bva_t));
 
     printf("FQ parsed. Total entries: %u.\n", ecou);
+    if(yesuniform)
+        printf("All sequences sizes in input file \"%s\" uniform at %u\n", argv[1], paa[0]->sz);
     for(i=0;i<ecou;++i) 
         prtele(paa, i);
 
