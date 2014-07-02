@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define EBUF 2
 #define HBUF 4 /* harshly sized buffer */
 #define GBUF 32
 
@@ -31,6 +32,19 @@ typedef struct /* bva_t */
     unsigned bf;
 } bva_t; /* base value array type */
 
+void prtele(bva_t **paa, unsigned nel) /* print a certain element */
+{
+    int i;
+    for(i=0;i<paa[nel]->idsz;++i) 
+        putchar(paa[nel]->id[i]);
+    putchar('\n');
+    for(i=0;i<paa[nel]->sz;++i) 
+        putchar(paa[nel]->bca[i]);
+    putchar('\n');
+    for(i=0;i<paa[nel]->sz;++i) 
+        putchar(paa[nel]->va[i]);
+    putchar('\n');
+}
 
 bva_t *crea_bva(void)
 {
@@ -197,7 +211,7 @@ outro:
     return 0;
 }
 
-void ncharstova(FILE *fin, bva_t *pa, int nchars) /* read a number of chars to the value array */
+void ncharstova(FILE *fin, bva_t *pa, unsigned nchars) /* read a number of chars to the value array */
 {
     int c;
     unsigned cidx=0;
@@ -209,14 +223,19 @@ void ncharstova(FILE *fin, bva_t *pa, int nchars) /* read a number of chars to t
     return;
 }
 
-char firstread(FILE *fin, bva_t *pa) /* read a number of chars to the value array */
+char fillidtonl(FILE *fin, bva_t *pa) /* read a number of chars to the value array */
 {
     int c;
     char STATE=0;
     unsigned cidx=0;
     unsigned idbuf=HBUF;
-    while( (c = fgetc(fin)) !='\n' ) {
-        if( (c=='@') && !STATE)
+    for(;;) {
+        c = fgetc(fin);
+        if(c== EOF)
+            return 2;
+        else if( c== '\n')
+            break;
+        else if( (c=='@') & !STATE)
             STATE=1;
         if(STATE) {
             CONDREALLOC(cidx, idbuf, HBUF, pa->id, char);
@@ -237,36 +256,61 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     size_t sqidx=0;
-    char *nxtok;
-    int i;
+    unsigned ecou=0, ebuf=EBUF;
+    char *nxtok, retval;
+    int i, c;
 
     FILE *fin=fopen(argv[1], "r");
 
-    bva_t **paa=malloc(1*sizeof(bva_t));
-    for(i=0;i<1;++i) 
+    bva_t **paa=malloc(ebuf*sizeof(bva_t));
+    for(i=0;i<ebuf;++i) 
         paa[i]=crea_bva();
 
-    /* we want to catch the first title line */
-    if( firstread(fin, paa[0])) {
-        printf("Error on reading first line, no @ symbol forthcoming\n");
-        exit(EXIT_FAILURE);
-    }
+    for(;;) {
+        /* first check if we have space in our array for more sequences */
+        if(ecou == ebuf-1) {
+            ebuf += EBUF;
+            paa=realloc(paa, ebuf*sizeof(bva_t));
+            for(i=ebuf-EBUF;i<ebuf;++i) 
+                paa[i]=crea_bva();
+        }
 
-    nxtok=ENDB;
-    fillbctoma(fin, nxtok, &sqidx, paa[0]);
-    ncharstova(fin, paa[0], paa[0]->sz); /* read a number of chars to the value array */
+        /* we want to catch the first title line */
+        retval=fillidtonl(fin, paa[ecou]);
+        if(retval==2)
+           break;
+        else if(retval) {
+            printf("Error on reading first line, no @ symbol forthcoming\n");
+            exit(EXIT_FAILURE);
+        }
+
+        nxtok=ENDB;
+        fillbctoma(fin, nxtok, &sqidx, paa[ecou]);
+       // if(ecou!= 0) /* check for uniformity of the sequence sizes */
+       //     if
+        ncharstova(fin, paa[ecou], paa[ecou]->sz); /* read a number of chars to the value array */
+        ecou++;
+        if( (c=fgetc(fin)) == EOF )
+            break;
+        else if( c != '\n' ) {
+            printf("Error. What's \"%c\" doing here?\n", c);
+            printf("Error. Expected character to be newline at this point. Bailing out.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
     fclose(fin);
 
-    for(i=0;i<paa[0]->idsz;++i) 
-        putchar(paa[0]->id[i]);
-    putchar('\n');
-    for(i=0;i<paa[0]->sz;++i) 
-        putchar(paa[0]->bca[i]);
-    putchar('\n');
-    for(i=0;i<paa[0]->sz;++i) 
-        putchar(paa[0]->va[i]);
-    putchar('\n');
-    free_bva(paa[0]);
+    /* now normalize the size of the short read array */
+    for(i=ecou;i<ebuf;++i) 
+        free_bva(paa[i]);
+    paa=realloc(paa, ecou*sizeof(bva_t));
+
+    printf("FQ parsed. Total entries: %u.\n", ecou);
+    for(i=0;i<ecou;++i) 
+        prtele(paa, i);
+
+    for(i=0;i<ecou;++i) 
+        free_bva(paa[i]);
     free(paa);
 
     return 0;
