@@ -309,8 +309,11 @@ int main(int argc, char *argv[])
     printf("FQ parsed. Total entries: %u.\n", ecou);
     if(yesuniform)
         printf("All sequences sizes in input file \"%s\" uniform at %u\n", argv[1], paa[0]->sz);
+
+#ifdef DBG
     for(i=0;i<ecou;++i) 
         prtele(paa, i);
+#endif
 
     for(i=0;i<ecou;++i) 
         free_bva(paa[i]);
