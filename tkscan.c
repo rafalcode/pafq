@@ -15,7 +15,7 @@
         (a)=realloc((a), (b)*sizeof(t)); \
     }
 
-typedef struct
+typedef struct /* mnx_t */
 {
     char mn, mx;
 } mnx_t; /* Min and max value type */
