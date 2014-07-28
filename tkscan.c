@@ -15,7 +15,8 @@
         (a)=realloc((a), (b)*sizeof(t)); \
     }
 
-typedef struct {
+typedef struct
+{
     char mn, mx;
 } mnx_t; /* Min and max value type */
 
@@ -294,7 +295,7 @@ int main(int argc, char *argv[])
         if(retval==2)
             break;
         else if(retval) {
-            printf("Error on reading first line, no @ symbol forthcoming\n");
+            printf("Error on reading first line, no \'@\' symbol forthcoming\n");
             exit(EXIT_FAILURE);
         }
 
@@ -320,7 +321,7 @@ int main(int argc, char *argv[])
         free_bva(paa[i]);
     paa=realloc(paa, ecou*sizeof(bva_t));
 
-    printf("FQ parsed. Total entries: %u. Max. qualval=%c . Min qualval= %c\n", ecou, mnx.mx, mnx.mn);
+    printf("fastq file parsed. Total entries: %u. Max. qualval=%c . Min qualval= %c\n", ecou, mnx.mx, mnx.mn);
     if(yesuniform)
         printf("All sequences sizes in input file \"%s\" uniform at %u\n", argv[1], paa[0]->sz);
 

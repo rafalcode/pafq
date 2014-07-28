@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-g -Wall# -pg # note the gprof option
+CFLAGS=-g -Wall
 EXES=tkscan tkscan_dbg coumer
 
 tkscan: tkscan.c
