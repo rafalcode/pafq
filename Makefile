@@ -1,8 +1,11 @@
 CC=gcc
 CFLAGS=-g -Wall
-EXES=tkscan tkscan_dbg coumer
+EXES=tkscan tkscan_dbg coumer fqspl
 
 tkscan: tkscan.c
+	${CC} ${CFLAGS} -o $@ $^
+
+fqspl: fqspl.c
 	${CC} ${CFLAGS} -o $@ $^
 
 tkscan_dbg: tkscan.c
