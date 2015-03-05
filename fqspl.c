@@ -37,22 +37,38 @@ typedef struct /* bva_t */
     unsigned bf;
 } bva_t; /* base value array type */
 
-void prtfele(bva_t **paa, unsigned nel, char *fname) /* print a certain element */
+void prtspfele(bva_t **paa, unsigned nel, char *fname, int np) /* print whole fq file into split files */
 {
-    int i;
-    FILE *fp=fopen(fname, "w");
-    for(i=0;i<paa[nel]->idsz;++i) 
-        putc(fp paa[nel]->id[i]);
-    putchar('\n');
-    for(i=0;i<paa[nel]->sz;++i) 
-        putchar(paa[nel]->bca[i]);
-    putchar('\n');
-    putchar('+');
-    putchar('\n');
-    for(i=0;i<paa[nel]->sz;++i) 
-        putchar(paa[nel]->va[i]);
-    putchar('\n');
-    fclose(fp);
+    int i, j, k;
+    FILE *fp;
+    int elspf=nel/np;
+    int fw1x=nel%np;
+    unsigned start, end;
+
+    char tmpsarr[3][128]={{0}, {0}, {0}}; /* temp string array for confection of splitted filenames: the final one will be our splitted filename */
+    sscanf(fname, "%[^.]%s", tmpsarr[0], tmpsarr[1]); // yep correctly parses line
+
+    for(j=0;j<np;++j) {
+        sprintf(tmpsarr[2], "_%s_p%04d%s", tmpsarr[0], j, tmpsarr[1]);
+        fp=fopen(tmpsarr[2], "w");
+        start=(j<fw1x)? (elspf+1)*j : elspf*j+fw1x;
+        end=(j<fw1x)? (elspf+1)*(j+1) : elspf*(j+1)+fw1x;
+        for(k=start;k<end;++k) {
+            for(i=0;i<paa[k]->idsz;++i) 
+                fputc(paa[k]->id[i], fp);
+            fputc('\n', fp);
+            for(i=0;i<paa[k]->sz;++i) 
+                fputc(paa[k]->bca[i], fp);
+            fputc('\n', fp);
+            fputc('+', fp);
+            fputc('\n', fp);
+            for(i=0;i<paa[k]->sz;++i) 
+                fputc(paa[k]->va[i], fp);
+            fputc('\n', fp);
+        }
+        fclose(fp);
+    }
+    return;
 }
 
 void prtele(bva_t **paa, unsigned nel) /* print a certain element */
@@ -281,8 +297,8 @@ char fillidtonl(FILE *fin, bva_t *pa) /* read a number of chars to the value arr
 
 int main(int argc, char *argv[])
 {
-    if(argc!=2) {
-        printf("Error. Pls supply 1 argument: name of FASTQ file.\n");
+    if(argc!=3) {
+        printf("Error. Pls supply 2 arguments: 1) name of FASTQ file to be split. 2) Desired number of processes for which the split is for.\n");
         exit(EXIT_FAILURE);
     }
     size_t sqidx=0;
@@ -339,13 +355,8 @@ int main(int argc, char *argv[])
         free_bva(paa[i]);
     paa=realloc(paa, ecou*sizeof(bva_t));
 
-    /* here we printout the files */
-    char nam[256]={0};
-    strcpy(nam, argv[1]);
-    char *tp=strchr(nam, '.'); /* get the position of the final dot in the file name */
-    for(i=0;i<ecou;++i) 
-        sprintf(tp, "_p%04d.fq", i);
-        prtele(paa, i);
+    int np=atoi(argv[2]);
+    prtspfele(paa, ecou, argv[1], np);
 
     for(i=0;i<ecou;++i) 
         free_bva(paa[i]);
