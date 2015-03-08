@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-g -Wall
 SPECLIBS=-lz
-EXES=tkscan tkscan_dbg coumer fqspl z5 z7
+EXES=tkscan tkscan_dbg coumer fqspl z5 z7 pafq
 
 tkscan: tkscan.c
 	${CC} ${CFLAGS} -o $@ $^
@@ -15,6 +15,9 @@ tkscan_dbg: tkscan.c
 # coumer, a simple utility to print out all the possible k-permutation (with repetition) to give an idea of the space
 coumer: coumer.c
 	${CC} ${CFLAGS} -o $@ $^ -lm
+
+pafq: pafq.c
+	${CC} ${CFLAGS} -o $@ $^
 
 z5: z5.c
 	${CC} ${CFLAGS} -o $@ $^ ${SPECLIBS}

@@ -1,3 +1,5 @@
+#include <ctype.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,6 +38,61 @@ typedef struct /* bva_t */
     unsigned idsz;
     unsigned bf;
 } bva_t; /* base value array type */
+
+typedef struct  /* optstruct, a struct for the options */
+{
+    int aflg, bflg;
+    char *cval;
+    char **inputs;
+    int numinps;
+} optstruct;
+
+int catchopts(optstruct *opstru, int argc, char **argv)
+{
+    int index, c, bfsz=EBUF;
+    opterr = 0;
+
+    while ((c = getopt (argc, argv, "abc:")) != -1)
+        switch (c) {
+            case 'a':
+                opstru->aflg = 1;
+                break;
+            case 'b':
+                opstru->bflg = 1;
+                break;
+            case 'c':
+                opstru->cval = optarg;
+                break;
+            case '?':
+                if (optopt == 'c')
+                    fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+                else if (isprint (optopt))
+                    fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+                else
+                    fprintf (stderr,
+                            "Unknown option character `\\x%x'.\n",
+                            optopt);
+                return 1;
+            default:
+                abort();
+        }
+
+    opstru->numinps=0;
+    if(optind<argc) {
+        opstru->inputs=malloc(bfsz*sizeof(char*));
+        for (index = optind; index < argc; index++) {
+            if(opstru->numinps==bfsz) {
+                bfsz += EBUF;
+                opstru->inputs = realloc(opstru->inputs, bfsz*sizeof(char*));
+            }
+            opstru->inputs[opstru->numinps++]= argv[index]; /* all these will ahve to be check to ensure they are proper files. */
+        }
+        opstru->inputs = realloc(opstru->inputs, opstru->numinps*sizeof(char*)); /* normalize */
+    }
+
+    return 0;
+}
+
 
 void prtele(bva_t **paa, unsigned nel) /* print a certain element */
 {
@@ -259,18 +316,14 @@ char fillidtonl(FILE *fin, bva_t *pa) /* read a number of chars to the value arr
     return 0;
 }
 
-int main(int argc, char *argv[])
+void processfq(char *fname)
 {
-    if(argc!=2) {
-        printf("Error. Pls supply 1 argument: name of FASTQ file.\n");
-        exit(EXIT_FAILURE);
-    }
     size_t sqidx=0;
     unsigned ecou=0, ebuf=EBUF;
-    char *nxtok, retval, yesuniform=1;
+    char *nxtok, retval;
     int i, c;
 
-    FILE *fin=fopen(argv[1], "r");
+    FILE *fin=fopen(fname, "r");
 
     bva_t **paa=malloc(ebuf*sizeof(bva_t*));
     for(i=0;i<ebuf;++i) 
@@ -301,9 +354,7 @@ int main(int argc, char *argv[])
 
         nxtok=ENDB;
         fillbctoma(fin, nxtok, &sqidx, paa[ecou]);
-        if(ecou!= 0) /* check for uniformity of the sequence sizes */
-            if(paa[ecou]->sz != paa[0]->sz)
-                yesuniform=0;
+
         ncharstova(fin, paa[ecou], paa[ecou]->sz, &mnx); /* read a number of chars to the value array */
         ecou++;
         if( (c=fgetc(fin)) == EOF )
@@ -321,9 +372,7 @@ int main(int argc, char *argv[])
         free_bva(paa[i]);
     paa=realloc(paa, ecou*sizeof(bva_t));
 
-    printf("fastq file parsed. Total entries: %u. Max. qualval=%c . Min qualval= %c\n", ecou, mnx.mx, mnx.mn);
-    if(yesuniform)
-        printf("All sequences sizes in input file \"%s\" uniform at %u\n", argv[1], paa[0]->sz);
+    printf("file %s parsed. Total seqs: %u. Max. qualval=%c . Min qualval= %c\n", fname, ecou, mnx.mx, mnx.mn);
 
 #ifdef DBG
     for(i=0;i<ecou;++i) 
@@ -333,6 +382,20 @@ int main(int argc, char *argv[])
     for(i=0;i<ecou;++i) 
         free_bva(paa[i]);
     free(paa);
+
+    return;
+}
+
+int main(int argc, char *argv[])
+{
+    int i;
+    optstruct opstru={0};
+    catchopts(&opstru, argc, argv);
+
+    for(i=0;i<opstru.numinps;i++)
+		processfq(opstru.inputs[i]);
+
+    free(opstru.inputs);
 
     return 0;
 }
