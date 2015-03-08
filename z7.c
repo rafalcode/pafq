@@ -32,7 +32,7 @@ int defla(unsigned char **srcbf, FILE *dest, size_t *bfsz, int level)
     unsigned char mark=0; // checks if the input buffer has to be enlarged. This allows proper handlign of situations where is was NTO enlarged
     unsigned char in[CHUNK];
     unsigned char out[CHUNK];
-    unsigned char *tbf=*bf; /* possibly temp buffer */
+    unsigned char *tbf=*srcbf; /* possibly temp buffer */
     size_t tbfsz=*bfsz; /* possibly temp buffer SIZE */
     size_t last_TO=0;
 
@@ -45,47 +45,31 @@ int defla(unsigned char **srcbf, FILE *dest, size_t *bfsz, int level)
     if (ret != Z_OK)
         return ret;
 
-    strm.next_in = Z_NULL;
-    strm.next_out = Z_NULL;
-    strm.msg = Z_NULL;
-
-    int ret = inflateInit2(&strm , 16+MAX_WBITS); /* mere activation, source is not involved yet */
-    if (ret != Z_OK)
-        return ret;
-
-    /* now we go for the header */
-    gz_header head={0};
-    ret = inflateGetHeader(&strm , &head);
-    if (ret != Z_OK)
-        return ret;
-
     lcou=0;
     j=0;
-    do { /* decompress until deflate stream ends or end of file */
-        strm.avail_in = fread(in, sizeof(unsigned char), CHUNK, source);
-        if (ferror(source)) {
-            (void)inflateEnd(&strm);
-            return Z_ERRNO;
-        }
-        if (strm.avail_in == 0) /* fread returned nothing */
-            break;
+    do {
+        strm.avail_in = 
+        memcpy(in, tbf, CHUNK*sizeof(unsigned char));
+
         strm.next_in = in;
 
         /* run inflate() on input until output buffer not full */
         do {
             strm.avail_out = CHUNK;
             strm.next_out = out;
-            ret = inflate(&strm, Z_NO_FLUSH);
+            ret = deflate(&strm, flush);    /* no bad return value */
             assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
-            switch (ret) {
-                case Z_NEED_DICT:
-                    ret = Z_DATA_ERROR;     /* and fall through */
-                case Z_DATA_ERROR: case Z_MEM_ERROR:
-                    (void)inflateEnd(&strm);
-                    return ret;
+            have = CHUNK - strm.avail_out;
+            if (fwrite(out, 1, have, dest) != have || ferror(dest)) {
+                (void)deflateEnd(&strm);
+                return Z_ERRNO;
             }
+        } while (strm.avail_out == 0);
+        assert(strm.avail_in == 0);     /* all input will be used */
 
-            used_up = CHUNK - strm.avail_out;
+        /* done when last data in file processed */
+    } while (flush != Z_FINISH);
+    assert(ret == Z_STREAM_END);        /* stream will be complete */
             if(used_up != 0) { /* i.e. the output buf was definitely used */
                 if(tbfsz < strm.total_out) {
                     tbfsz=strm.total_out;
