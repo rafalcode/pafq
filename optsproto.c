@@ -36,7 +36,7 @@ int catchopts(optstruct *opstru, int argc, char **argv)
                             optopt);
                 return 1;
             default:
-                abort ();
+                abort();
         }
 
     for (index = optind; index < argc; index++)
