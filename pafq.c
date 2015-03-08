@@ -272,7 +272,7 @@ int main(int argc, char *argv[])
 
     FILE *fin=fopen(argv[1], "r");
 
-    bva_t **paa=malloc(ebuf*sizeof(bva_t));
+    bva_t **paa=malloc(ebuf*sizeof(bva_t*));
     for(i=0;i<ebuf;++i) 
         paa[i]=crea_bva();
 
