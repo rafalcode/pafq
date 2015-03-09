@@ -17,10 +17,13 @@
         (a)=realloc((a), (b)*sizeof(t)); \
     }
 
-typedef struct /* mnx_t */
+typedef struct /* smmry_t */
 {
     char mn, mx;
-} mnx_t; /* Min and max value type */
+    unsigned totb; /* total number of bases called */
+    unsigned mnnbps; /* minimum number of bases per sequence */
+    unsigned mxnbps; /* maximum number of bases per sequence */
+} smmry_t; /* Min and max value type */
 
 struct cl /* "character link" structure ... a linked list of characters ... essentially this is the token scanner. Links are looped into a ring equal to the szie of the token */
 {
@@ -46,6 +49,17 @@ typedef struct  /* optstruct, a struct for the options */
     char **inputs;
     int numinps;
 } optstruct;
+
+void usage(char *progname, char yeserror)
+{
+    printf("Usage instructions:\n");
+    printf("\"%s\" is a program to parse multiple fastq files\n", progname); 
+    printf("Please supply a list of fastq filename on the argument line.\n");
+    if(yeserror)
+        exit(EXIT_FAILURE);
+    else
+        exit(EXIT_SUCCESS);
+}
 
 int catchopts(optstruct *opstru, int argc, char **argv)
 {
@@ -273,7 +287,7 @@ outro:
     return 0;
 }
 
-void ncharstova(FILE *fin, bva_t *pa, unsigned nchars, mnx_t *mnx) /* read a number of chars to the value array */
+void ncharstova(FILE *fin, bva_t *pa, unsigned nchars, smmry_t *smmry) /* read a number of chars to the value array */
 {
     int c;
     unsigned cidx=0;
@@ -281,10 +295,10 @@ void ncharstova(FILE *fin, bva_t *pa, unsigned nchars, mnx_t *mnx) /* read a num
     while( ( cidx!= nchars) ) {
         c = fgetc(fin);
         pa->va[cidx]=c;
-        if(pa->va[cidx]>mnx->mx)
-            mnx->mx = pa->va[cidx];
-        if(pa->va[cidx]<mnx->mn)
-            mnx->mn = pa->va[cidx];
+        if(pa->va[cidx]>smmry->mx)
+            smmry->mx = pa->va[cidx];
+        if(pa->va[cidx]<smmry->mn)
+            smmry->mn = pa->va[cidx];
         cidx++;
     }
     return;
@@ -330,9 +344,12 @@ void processfq(char *fname)
         paa[i]=crea_bva();
 
     /* want to see what the max and min values are like */
-    mnx_t mnx;
-    mnx.mn=127;
-    mnx.mx=0;
+    smmry_t smmry;
+    smmry.mn=127;
+    smmry.mx=0;
+    smmry.totb=0;
+    smmry.mnnbps=2048;
+    smmry.mxnbps=0;
 
     for(;;) {
         /* first check if we have space in our array for more sequences */
@@ -354,8 +371,13 @@ void processfq(char *fname)
 
         nxtok=ENDB;
         fillbctoma(fin, nxtok, &sqidx, paa[ecou]);
+        if(paa[ecou]->sz > smmry.mxnbps)
+            smmry.mxnbps = paa[ecou]->sz;
+        if(paa[ecou]->sz < smmry.mnnbps)
+            smmry.mnnbps = paa[ecou]->sz;
+        smmry.totb += paa[ecou]->sz;
 
-        ncharstova(fin, paa[ecou], paa[ecou]->sz, &mnx); /* read a number of chars to the value array */
+        ncharstova(fin, paa[ecou], paa[ecou]->sz, &smmry); /* read a number of chars to the value array */
         ecou++;
         if( (c=fgetc(fin)) == EOF )
             break;
@@ -372,7 +394,7 @@ void processfq(char *fname)
         free_bva(paa[i]);
     paa=realloc(paa, ecou*sizeof(bva_t));
 
-    printf("file %s parsed. Total seqs: %u. Max. qualval=%c . Min qualval= %c\n", fname, ecou, mnx.mx, mnx.mn);
+    printf("file %s parsed. Totalseqs: %u. Totalbases: %u. Mx sqsz: %u. Min sqsz: %u. Max. qualval=%c . Min qualval= %c\n", fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
 
 #ifdef DBG
     for(i=0;i<ecou;++i) 
@@ -388,12 +410,15 @@ void processfq(char *fname)
 
 int main(int argc, char *argv[])
 {
+    if(argc==1)
+        usage(argv[0], 0);
+
     int i;
     optstruct opstru={0};
     catchopts(&opstru, argc, argv);
 
     for(i=0;i<opstru.numinps;i++)
-		processfq(opstru.inputs[i]);
+        processfq(opstru.inputs[i]);
 
     free(opstru.inputs);
 
