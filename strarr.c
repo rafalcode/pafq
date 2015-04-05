@@ -19,14 +19,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define LNBUF 2
-#define GSTRBUF 2 /* general string buffer */
+#define LNBUF 8
+#define GSTRBUF 8 /* general string buffer */
 /* quick macro for conditionally enlarging a general native type array */
 #define CONDREALLOC(x, b, c, a, t); \
-    if((x)==((b)-1)) { \
+    if((x)>=((b)-3)) { \
         (b) += (c); \
         (a)=realloc((a), (b)*sizeof(t)); \
+        memset((a)+(b)-(c), 0, (c)*sizeof(t)); \
     }
+//        memset(((a)-(c)), 0, (c)*sizeof(t));
 
 /* quick macro for conditionally enlarging a char pointer, space always available for final null char */
 #define CONDREALLOCP(x, b, c, a); \
@@ -65,7 +67,7 @@
         memset((a)+(b)-(c), 0, (c)*sizeof(t)); \
     }
 
-typedef struct
+typedef struct /* strua_t */
 {
     char **stra; /* the string array, size of each string will be one less than ua */
     unsigned *ua;
@@ -128,6 +130,28 @@ strua_t *crea_strua_t(void) /* with minimum memory allocations as well */
     return lnarr_p;
 }
 
+unsigned *repseekarray(strua_t *lnarr_p, unsigned *rpasz)
+{
+    unsigned j, jj, m, buf=GSTRBUF;
+    unsigned *rpa=calloc(buf, sizeof(unsigned));
+
+    j=jj=m=0;
+    while(jj<lnarr_p->uasz) {
+        CONDREALLOC(m, buf, GSTRBUF, rpa, unsigned);
+        rpa[m]=j;
+        rpa[m+1]=lnarr_p->ua[j];
+        do {
+            rpa[m+2]++;
+            jj++;
+        } while( (jj<lnarr_p->uasz) & (lnarr_p->ua[jj] == lnarr_p->ua[j]) );
+        j=jj;
+        m+=3;
+    }
+    rpa=realloc(rpa, m*sizeof(unsigned));
+   *rpasz=m; 
+   return rpa;
+}
+
 void prto_linesizes(char *fname, strua_t *lnarr_p)
 {
     unsigned j;
@@ -176,7 +200,16 @@ int main(int argc, char *argv[])
     strua_t *lnarr_p=crea_strua_t();
     f2strua_t(argv[1], &lnarr_p);
     prto_linesizes(argv[1], lnarr_p);
+    unsigned rpsz=0;
+    unsigned *rpa=repseekarray(lnarr_p, &rpsz);
 
+    int i;
+    printf("repseek array is of size %u\n", rpsz); 
+    for(i=0;i<rpsz;i+=3) 
+        printf("%u/%u/%u ", rpa[i], rpa[i+1], rpa[i+2]);
+    printf("\n"); 
+
+    free(rpa);
     free_strua_t(&lnarr_p);
 
     return 0;
