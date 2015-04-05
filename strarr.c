@@ -54,10 +54,11 @@
     }
 
 /* quick macro for conditionally enlarging a twin digit and char array based on same lnbuf, a2 MUST be a double char ptr */
-#define CONDREALLOTDCA(x, b, c, a, a2, t, i, strbuf); \
+#define CONDREALLOTDCA(x, b, c, a, a1, a2, t, i, strbuf); \
     if((x)==((b)-1)) { \
         (b) += (c); \
         (a)=realloc((a), (b)*sizeof(t)); \
+        (a1)=realloc((a1), (b)*sizeof(t)); \
         (a2)=realloc((a2), (b)*sizeof(char*)); \
         for((i)=(b)-(c);(i)<(b);++(i)) \
             (a2)[(i)]=calloc((strbuf), sizeof(char)); \
@@ -68,8 +69,9 @@ typedef struct
 {
     char **stra; /* the string array, size of each string will be one less than ua */
     unsigned *ua;
+    unsigned *plwc; /* word per line counts */
     unsigned uasz;
-} strua_t; /* First Line Plus Unsigned Array Type */
+} strua_t; /* String into unsigned array type */
 
 void f2strua_t(char *fname, strua_t **lnarr_p)
 {
@@ -77,20 +79,30 @@ void f2strua_t(char *fname, strua_t **lnarr_p)
     int c;
     unsigned lnsz=0, lnbuf=LNBUF, strbuf=GSTRBUF, j;
     unsigned lidx=1;
+    unsigned char inw=0;
+    unsigned plwc=0;
 
     for(;;) {
         c=fgetc(fin);
         if(c == EOF) break;
         if(c == '\n') {
             (*lnarr_p)->ua[lidx-1]=lnsz;
+            (*lnarr_p)->plwc[lidx-1]=plwc;
             (*lnarr_p)->stra[lidx-1][lnsz]='\0';
-            CONDREALLOTDCA(lidx-1, lnbuf, LNBUF, (*lnarr_p)->ua, (*lnarr_p)->stra, unsigned, j, GSTRBUF);
+            CONDREALLOTDCA(lidx-1, lnbuf, LNBUF, (*lnarr_p)->ua, (*lnarr_p)->plwc, (*lnarr_p)->stra, unsigned, j, GSTRBUF);
             lidx++;
             lnsz=0;
             strbuf=GSTRBUF;
+            inw=0;
+            plwc=0;
         } else {
             CONDREALLOCP(lnsz, strbuf, GSTRBUF, (*lnarr_p)->stra[lidx-1]);
             (*lnarr_p)->stra[lidx-1][lnsz]=c;
+            if( (!inw) & ((c!=' ') | (c!='\t')) ) {
+                inw=1;
+                plwc++;
+            } else if( inw & ((c==' ') | (c=='\t')) )
+                inw=0;
             lnsz++;
         }
     }
@@ -109,10 +121,24 @@ strua_t *crea_strua_t(void) /* with minimum memory allocations as well */
     unsigned j;
     strua_t *lnarr_p=malloc(sizeof(strua_t));
     lnarr_p->ua=calloc(LNBUF, sizeof(unsigned));
+    lnarr_p->plwc=calloc(LNBUF, sizeof(unsigned));
     lnarr_p->stra=malloc(LNBUF*sizeof(char*));
     for(j=0;j<LNBUF;++j) 
         lnarr_p->stra[j]=calloc(GSTRBUF, sizeof(char));
     return lnarr_p;
+}
+
+void prto_linesizes(char *fname, strua_t *lnarr_p)
+{
+    unsigned j;
+    printf("File \"%s\" has %u lines; per line chars is :\n", fname, lnarr_p->uasz); 
+    for(j=0;j<lnarr_p->uasz;++j) 
+        printf("%u ", lnarr_p->ua[j]);
+    printf("\n"); 
+    for(j=0;j<lnarr_p->uasz;++j) 
+        printf("%u ", lnarr_p->plwc[j]);
+    printf("\n"); 
+    return;
 }
 
 void prto_strua_t(strua_t *lnarr_p)
@@ -130,6 +156,7 @@ void free_strua_t(strua_t **lnarr_p)
 {
     unsigned j;
     free((*lnarr_p)->ua);
+    free((*lnarr_p)->plwc);
     for(j=0;j<(*lnarr_p)->uasz;++j) 
         free((*lnarr_p)->stra[j]);
     free((*lnarr_p)->stra);
@@ -148,7 +175,7 @@ int main(int argc, char *argv[])
     /* convert this file into a line array */
     strua_t *lnarr_p=crea_strua_t();
     f2strua_t(argv[1], &lnarr_p);
-    prto_strua_t(lnarr_p);
+    prto_linesizes(argv[1], lnarr_p);
 
     free_strua_t(&lnarr_p);
 
