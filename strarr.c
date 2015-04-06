@@ -1,19 +1,24 @@
 /* strarr_scfl.c building on lnarr.c to produce a program which slurps each line of a text file nto a SINGLE array EXCEPT for the first line however
    Copyright (C) 2014  Ramon Fallon
-   
+
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
    as published by the Free Software Foundation; either version 2
    of the License, or (at your option) any later version.
-   
+
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-   
+
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+   */
+
+/* advice
+ * newline characters are not counted in the character counts
+ * - If blank lines appears to have a character, it's probably because of the '\r' ascii 13 of DOS
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +49,7 @@
         (b) += (c); \
         (a)=realloc((a), (b)*sizeof(char*)); \
         for((i)=(b)-(c);(i)<(b);++(i)) \
-            (a)[(i)]=calloc((strbuf), sizeof(char)); \
+        (a)[(i)]=calloc((strbuf), sizeof(char)); \
     }
 
 /* quick macro for conditionally enlarging a numeric native type array and setting extended memory to zero */
@@ -63,7 +68,7 @@
         (a1)=realloc((a1), (b)*sizeof(t)); \
         (a2)=realloc((a2), (b)*sizeof(char*)); \
         for((i)=(b)-(c);(i)<(b);++(i)) \
-            (a2)[(i)]=calloc((strbuf), sizeof(char)); \
+        (a2)[(i)]=calloc((strbuf), sizeof(char)); \
         memset((a)+(b)-(c), 0, (c)*sizeof(t)); \
     }
 
@@ -100,7 +105,7 @@ void f2strua_t(char *fname, strua_t **lnarr_p)
         } else {
             CONDREALLOCP(lnsz, strbuf, GSTRBUF, (*lnarr_p)->stra[lidx-1]);
             (*lnarr_p)->stra[lidx-1][lnsz]=c;
-            if( (!inw) & ((c!=' ') | (c!='\t')) ) {
+            if( (!inw) & ((c!=' ') & (c!='\t')) ) {
                 inw=1;
                 plwc++;
             } else if( inw & ((c==' ') | (c=='\t')) )
@@ -143,19 +148,19 @@ unsigned *repseekarray(strua_t *lnarr_p, unsigned *rpasz)
         do {
             rpa[m+2]++;
             jj++;
-        } while( (jj<lnarr_p->uasz) & (lnarr_p->ua[jj] == lnarr_p->ua[j]) );
+        } while( (jj<lnarr_p->uasz) && (lnarr_p->ua[jj] == lnarr_p->ua[j]) ); /* double & means second expr won't be evaluated is first is false. */
         j=jj;
         m+=3;
     }
     rpa=realloc(rpa, m*sizeof(unsigned));
-   *rpasz=m; 
-   return rpa;
+    *rpasz=m; 
+    return rpa;
 }
 
 void prto_linesizes(char *fname, strua_t *lnarr_p)
 {
     unsigned j;
-    printf("File \"%s\" has %u lines; per line chars is :\n", fname, lnarr_p->uasz); 
+    printf("File \"%s\" has %u lines; per line char count followed by per-line-word count :\n", fname, lnarr_p->uasz); 
     for(j=0;j<lnarr_p->uasz;++j) 
         printf("%u ", lnarr_p->ua[j]);
     printf("\n"); 
@@ -199,15 +204,53 @@ int main(int argc, char *argv[])
     /* convert this file into a line array */
     strua_t *lnarr_p=crea_strua_t();
     f2strua_t(argv[1], &lnarr_p);
-    prto_linesizes(argv[1], lnarr_p);
+    //    prto_linesizes(argv[1], lnarr_p);
     unsigned rpsz=0;
     unsigned *rpa=repseekarray(lnarr_p, &rpsz);
 
-    int i;
+    int i, j, k;
+#ifdef DBG
     printf("repseek array is of size %u\n", rpsz); 
     for(i=0;i<rpsz;i+=3) 
         printf("%u/%u/%u ", rpa[i], rpa[i+1], rpa[i+2]);
     printf("\n"); 
+#endif
+    /* Up until this point, we have a repeat array showing lines with contiguous linelengths. A problem is deciding which linelength we should
+     * choose and this could be inferred, but an easy way is to use the first line. Maybe later I'll work out a way of not using it, but
+     * for now lets just sscanf the first line */
+    unsigned ntxa, nsites;
+    char interyes;
+    int ret=sscanf(lnarr_p->stra[0], "%u %u %c", &ntxa, &nsites, &interyes);
+
+    if(ret!=3) {
+        printf("Error. A phylip file of some sort is expected, first line must have three tokens.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    /* let's find the index that start repeating nxta times */
+    i=0;
+    while(rpa[i+2]!=ntxa)
+        i+=3;
+    unsigned startidx=rpa[i]-ntxa-1; /* This is actually where the first name starts, i.e. ntxa+1 before sequence data */
+#ifdef DBG
+    printf("Idx %u if first with %u reps. So first name starts at %u\n", rpa[i], rpa[i+2], startidx); 
+#endif
+
+    /* OK, were going to skip around in multiples of ntxa+1, to get full sequence
+     * we'll do that on each of the taxa obeyed interleaved layout */
+    for(k=0;k<ntxa;++k) {
+        i=startidx;
+        printf(">%s\n", lnarr_p->stra[i+k]); 
+        i+=ntxa+1;
+        while((i+k)<lnarr_p->uasz) {
+            for(j=0; j<lnarr_p->ua[i+k]; ++j) {
+                if(lnarr_p->stra[i+k][j] != ' ') 
+                    putchar((lnarr_p->stra[i+k][j] == '.')? lnarr_p->stra[i][j] : lnarr_p->stra[i+k][j]);
+            }
+            putchar('\n');
+            i+=ntxa+1;
+        }
+    }
 
     free(rpa);
     free_strua_t(&lnarr_p);
