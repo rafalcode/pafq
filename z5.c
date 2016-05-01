@@ -115,10 +115,9 @@ int infla(FILE *source, unsigned char **bf, size_t *bfsz)
     return ret == Z_STREAM_END ? Z_OK : Z_DATA_ERROR;
 }
 
-/* report a zlib or i/o error */
-void zerr(int ret)
+void zerr(int ret) /* report a zlib or i/o error */
 {
-    fputs("zpipe: ", stderr);
+    fputs("zlib routine: ", stderr);
     switch (ret) {
         case Z_ERRNO:
             if (ferror(stdin))
@@ -150,6 +149,12 @@ int main(int argc, char **argv)
         printf("Error. Pls supply 2 arguments 1) input gzipped filename and 2) output filename\n");
         exit(EXIT_FAILURE);
     }
+    char *dotp; /* dot pointer */
+    dotp=strrchr(argv[1], '.');
+    if((dotp==NULL) & (!strncmp("gz", dotp+1, 2)) ) {
+        printf("Error. The input file must have the gz extension. Not a water tight indicator of course, but for appearances sake, it should have one.\n");
+        exit(EXIT_FAILURE);
+    }
 
     FILE *fpa=fopen(argv[1], "r");
     size_t compfsz = fszfind(fpa);
@@ -157,7 +162,7 @@ int main(int argc, char **argv)
     printf("Input file is %zu bytes, which is %2.1f%% of system memory.\n", compfsz, 100*(float)compfsz/tssz); 
 
     unsigned char *bf=malloc(compfsz*sizeof(unsigned char));
-    ret = infla(fpa, &bf, &compfsz); // yes, this function DOES take care of enlarging bf as will not doubt be necessary !!!
+    ret = infla(fpa, &bf, &compfsz); // yes, this function DOES take care of enlarging bf as will no doubt be necessary !!!
     fclose(fpa);
 
     if (ret != Z_OK)
