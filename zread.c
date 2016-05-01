@@ -146,13 +146,13 @@ int main(int argc, char **argv)
 
     /* argument accounting */
     if(argc!=2) {
-        printf("Error. Pls supply 2 arguments 1) input gzipped filename and 2) output filename\n");
+        printf("Error. Pls supply 1 arguments: input gzipped filename.\n");
         exit(EXIT_FAILURE);
     }
-    char *dotp; /* dot pointer */
+    char *dotp=NULL; /* dot pointer */
     dotp=strrchr(argv[1], '.');
-    if((dotp==NULL) & (!strncmp("gz", dotp+1, 2)) ) {
-        printf("Error. The input file must have the gz extension. Not a water tight indicator of course, but for appearances sake, it should have one.\n");
+    if((dotp==NULL) | (strncmp("gz", dotp+1, 2)) ) {
+        printf("Error. The input file must have the \"gz\" extension. Not a water tight indicator of course, but for appearances sake, it should have one.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -172,8 +172,13 @@ int main(int argc, char **argv)
     // printf("%.*s", (int)compfsz, bf); 
 //    printf("%s", bf); 
     int i;
+    /* for proof of concept sake, let's advance through the buffer and count something, like newlines */
+    unsigned nlcou=0;
     for(i=0;i<compfsz;++i) 
-        putchar(bf[i]);
+        // putchar(bf[i]);
+        if(bf[i]=='\n')
+            nlcou++;
+    printf("Total number of newlines in gzipped file=%u.\n", nlcou);
 
     free(bf);
     return ret;

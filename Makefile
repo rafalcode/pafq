@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-g -Wall
 SPECLIBS=-lz
-EXES=tkscan tkscan_dbg coumer fqspl strarr z5 z7 pafq
+EXES=tkscan tkscan_dbg coumer fqspl strarr zread z7 pafq zread
 
 tkscan: tkscan.c
 	${CC} ${CFLAGS} -o $@ $^
@@ -22,10 +22,16 @@ pafq: pafq.c
 strarr: strarr.c
 	${CC} ${CFLAGS} -o $@ $^
 
-z5: z5.c
+# Essential part fo fastq file is being able to read gzipped version of the them
+# The zlib library is used for this.
+
+
+# z7 taken from zpipe.c the canonical zlib usage example.
+z7: z7.c
 	${CC} ${CFLAGS} -o $@ $^ ${SPECLIBS}
 
-z7: z7.c
+# only interested in inflating compressed files, not the other around. Given a nice name too:
+zread: zread.c
 	${CC} ${CFLAGS} -o $@ $^ ${SPECLIBS}
 
 .PHONY: clean
