@@ -464,7 +464,7 @@ char fillidtonl(unsigned char *bf, size_t compfsz, size_t *bfidx, bva_t *pa) /* 
     return 0;
 }
 
-void processfq(unsigned char *bf, size_t compfsz)
+void processfq(char *fname, unsigned char *bf, size_t compfsz)
 {
     size_t sqidx=0UL, bfidx=0UL;
     int i, c;
@@ -529,7 +529,7 @@ void processfq(unsigned char *bf, size_t compfsz)
         free_bva(paa[i]);
     paa=realloc(paa, ecou*sizeof(bva_t));
 
-    printf("Buffer parsed. Totalseqs: %u. Totalbases: %u. Mx sqsz: %u. Min sqsz: %u. Max. qualval=%c . Min qualval= %c\n", ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
+    printf("%s: Totalseqs: %u. Totalbases: %u. Mx sqsz: %u. Min sqsz: %u. Max. qualval=%c . Min qualval= %c\n", fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
 
 #ifdef DBG
     for(i=0;i<ecou;++i) 
@@ -562,7 +562,7 @@ int main(int argc, char *argv[])
         compfsz = fszfind(fpa);
         fbf=realloc(fbf, compfsz*sizeof(unsigned char));
         ret = infla(fpa, &fbf, &compfsz); // yes, this function DOES take care of enlarging bf as will no doubt be necessary !!!
-        processfq(fbf, compfsz);
+        processfq(opstru.inputs[i], fbf, compfsz);
         fclose(fpa);
     }
 
