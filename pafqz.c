@@ -141,7 +141,7 @@ int infla(FILE *source, unsigned char **bf, size_t *bfsz)
                         break;
                     if(out[i] == '\n')
                         lcou++;
-                    putchar(out[i]);
+                    // putchar(out[i]);  // for printing out some stuff.
                 }
                 last_TO = strm.total_out;
             }
@@ -445,7 +445,7 @@ char fillidtonl(unsigned char *bf, size_t compfsz, size_t *bfidx, bva_t *pa) /* 
     unsigned cidx=0, idbuf=HBUF;
     for(;;) {
         c = (int)bf[currbfidx++];
-        if(currbfidx > compfsz) // we still want final processed
+        if(currbfidx >= compfsz) // we still want final processed
             return 2;
         else if( c== '\n')
             break;
@@ -484,7 +484,6 @@ void processfq(unsigned char *bf, size_t compfsz)
     smmry.mxnbps=0;
 
     for(;;) {
-        c=(int)bf[bfidx++];
         /* first check if we have space in our array for more sequences */
         if(ecou == ebuf-1) {
             ebuf += EBUF;
@@ -493,6 +492,9 @@ void processfq(unsigned char *bf, size_t compfsz)
                 paa[i]=crea_bva();
         }
 
+        /* shoved in because of invalid read error from valgrind ... fillidtonl was being called when there was no sequence left */
+        if(bfidx >= compfsz)
+            break;
         /* we want to catch the first title line */
         retval=fillidtonl(bf, compfsz, &bfidx, paa[ecou]);
         if(retval==2)
@@ -512,6 +514,7 @@ void processfq(unsigned char *bf, size_t compfsz)
 
         ncharstova(bf, &bfidx, paa[ecou], paa[ecou]->sz, &smmry); /* read a number of chars to the value array */
         ecou++;
+        c=(int)bf[bfidx++];
         if( bfidx == compfsz-1 )
             break;
         else if( c != '\n' ) {
@@ -551,7 +554,8 @@ int main(int argc, char *argv[])
 
     FILE *fpa;
     size_t compfsz;
-    unsigned char *fbf=malloc(GBUF*sizeof(unsigned char));
+    // unsigned char *fbf=malloc(GBUF*sizeof(unsigned char));
+    unsigned char *fbf=NULL;
     int ret;
     for(i=0;i<opstru.numinps;i++) {
         fpa=fopen(opstru.inputs[i], "r");
