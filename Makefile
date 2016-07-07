@@ -34,6 +34,10 @@ z7: z7.c
 zread: zread.c
 	${CC} ${CFLAGS} -o $@ $^ ${SPECLIBS}
 
+# incorporate zread to be abel to parse a fastq.gz
+pafqz: pafqz.c
+	${CC} ${CFLAGS} -o $@ $^ ${SPECLIBS}
+
 .PHONY: clean
 
 clean:
