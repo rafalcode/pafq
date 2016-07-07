@@ -532,7 +532,7 @@ void processfq(char *fname, unsigned char *bf, size_t compfsz)
     //    printf("%s: Totalseqs: %u. Totalbases: %u. Mx sqsz: %u. Min sqsz: %u. Max. qualval=%c . Min qualval= %c\n", fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
     // OK get ready for print out
     char *fnp=strchr(fname, '.');
-    printf("<tr><td>%.*s</td><td>%u</td><td>%u</td><td>%u</td><td>%u</td><td>%c</td><td>%c</td></tr>\n", (int)(fnp-fname), fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
+    printf("<tr><td>%.*s</td><td>%'u</td><td>%'u</td><td>%u</td><td>%u</td><td>%c</td><td>%c</td></tr>\n", (int)(fnp-fname), fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
 
 #ifdef DBG
     for(i=0;i<ecou;++i) 
