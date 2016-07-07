@@ -376,9 +376,10 @@ cl_t *creaclstr(char *stg, int ssz) /* create empty ring of size ssz */
     return mou;
 }
 
-inline char fillbctoma(unsigned char *bf, char *str2ma, size_t *sqidx, bva_t *pa) /* fill base call array till match */
+inline char fillbctoma(unsigned char *bf, size_t compfsz, size_t *bfidx, char *str2ma, size_t *sqidx, bva_t *pa) /* fill base call array till match */
 {
-    int *c=(int*)bf, ssz;
+    int c, ssz;
+    size_t currbfidx=*bfidx;
     char *scanstr=scas(str2ma, &ssz);
     if(ssz<1) {
         printf("Error. The sliding window must be 1 or more.\n");
@@ -387,20 +388,21 @@ inline char fillbctoma(unsigned char *bf, char *str2ma, size_t *sqidx, bva_t *pa
     cl_t *d2ma=creaclstr(scanstr, ssz); /* the cl_t to match, so to speak */
     cl_t *mou=creacl(ssz);
     unsigned nmoves=0;
-    while( *c != EOF) {
+    while( currbfidx < compfsz) {
+        c = (int)bf[currbfidx++];
         CONDREALLOC(nmoves, pa->bf, HBUF, pa->bca, char);
-        pa->bca[nmoves]=mou->c= *c;
+        pa->bca[nmoves]=mou->c= c;
         if((mou->n->c) && (cmpcl(mou, d2ma))) {
             // printf("yes: at %zu\n", sqidx);
             goto outro;
         }
         mou=mou->n;
         nmoves++;
-        c++;
     }
 
     printf("Abnormal c or no match or unplanned EOF was reached. ");
-    printf("Last seen c was %x\n", *c); 
+    printf("Last seen c was %x\n", c); 
+    *bfidx=currbfidx;
     return 1;
 
 outro:    
@@ -410,18 +412,19 @@ outro:
     free(scanstr);
     freering(mou);
     freering(d2ma);
+    *bfidx=currbfidx;
 
     return 0;
 }
 
-void ncharstova(unsigned char *bf, size_t compfsz, size_t *bfidx, bva_t *pa, unsigned nchars, smmry_t *smmry) /* read a number of chars to the value array */
+void ncharstova(unsigned char *bf, size_t *bfidx, bva_t *pa, unsigned nchars, smmry_t *smmry) /* read a number of chars to the value array */
 {
     int c;
     size_t currbfidx=*bfidx;
     unsigned cidx=0;
     pa->va=malloc(nchars*sizeof(char));
     while( ( cidx!= nchars) ) {
-        c = (int)bf[currbfidz];
+        c = (int)bf[currbfidx++];
         pa->va[cidx]=c;
         if(pa->va[cidx]>smmry->mx)
             smmry->mx = pa->va[cidx];
@@ -429,7 +432,6 @@ void ncharstova(unsigned char *bf, size_t compfsz, size_t *bfidx, bva_t *pa, uns
             smmry->mn = pa->va[cidx];
 
         cidx++;
-        currbfidx++;
     }
     *bfidx=currbfidx;
     return;
@@ -442,8 +444,8 @@ char fillidtonl(unsigned char *bf, size_t compfsz, size_t *bfidx, bva_t *pa) /* 
     char STATE=0;
     unsigned cidx=0, idbuf=HBUF;
     for(;;) {
-        c = (int)bf[currbfidz];
-        if(currbfidx== compfsz-1)
+        c = (int)bf[currbfidx++];
+        if(currbfidx > compfsz) // we still want final processed
             return 2;
         else if( c== '\n')
             break;
@@ -453,7 +455,6 @@ char fillidtonl(unsigned char *bf, size_t compfsz, size_t *bfidx, bva_t *pa) /* 
             CONDREALLOC(cidx, idbuf, HBUF, pa->id, char);
             pa->id[cidx++]=c;
         }
-        currbfidx++;
     }
     if(!STATE)
         return 1;
@@ -483,7 +484,7 @@ void processfq(unsigned char *bf, size_t compfsz)
     smmry.mxnbps=0;
 
     for(;;) {
-        c=(int)bf[bfidx];
+        c=(int)bf[bfidx++];
         /* first check if we have space in our array for more sequences */
         if(ecou == ebuf-1) {
             ebuf += EBUF;
@@ -493,7 +494,7 @@ void processfq(unsigned char *bf, size_t compfsz)
         }
 
         /* we want to catch the first title line */
-        retval=fillidtonl(bf, compfsz, &bfcou, paa[ecou]);
+        retval=fillidtonl(bf, compfsz, &bfidx, paa[ecou]);
         if(retval==2)
             break;
         else if(retval) {
@@ -502,23 +503,22 @@ void processfq(unsigned char *bf, size_t compfsz)
         }
 
         nxtok=ENDB;
-        fillbctoma(bf, nxtok, &sqidx, paa[ecou]);
+        fillbctoma(bf, compfsz, &bfidx, nxtok, &sqidx, paa[ecou]);
         if(paa[ecou]->sz > smmry.mxnbps)
             smmry.mxnbps = paa[ecou]->sz;
         if(paa[ecou]->sz < smmry.mnnbps)
             smmry.mnnbps = paa[ecou]->sz;
         smmry.totb += paa[ecou]->sz;
 
-        ncharstova(bf, compfsz, bfidx, paa[ecou], paa[ecou]->sz, &smmry); /* read a number of chars to the value array */
+        ncharstova(bf, &bfidx, paa[ecou], paa[ecou]->sz, &smmry); /* read a number of chars to the value array */
         ecou++;
         if( bfidx == compfsz-1 )
             break;
         else if( c != '\n' ) {
-            printf("Error. What's \"%c\" doing here?\n", *c);
+            printf("Error. What's \"%c\" doing here?\n", c);
             printf("Error. Expected character to be newline at this point. Bailing out.\n");
             exit(EXIT_FAILURE);
         }
-        bfidx++;
     }
 
     /* now normalize the size of the short read array */
