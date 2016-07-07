@@ -529,7 +529,10 @@ void processfq(char *fname, unsigned char *bf, size_t compfsz)
         free_bva(paa[i]);
     paa=realloc(paa, ecou*sizeof(bva_t));
 
-    printf("%s: Totalseqs: %u. Totalbases: %u. Mx sqsz: %u. Min sqsz: %u. Max. qualval=%c . Min qualval= %c\n", fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
+    //    printf("%s: Totalseqs: %u. Totalbases: %u. Mx sqsz: %u. Min sqsz: %u. Max. qualval=%c . Min qualval= %c\n", fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
+    // OK get ready for print out
+    char *fnp=strchr(fname, '.');
+    printf("<tr><td>%.*s</td><td>%u</td><td>%u</td><td>%u</td><td>%u</td><td>%c</td><td>%c</td></tr>\n", (int)(fnp-fname), fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
 
 #ifdef DBG
     for(i=0;i<ecou;++i) 
@@ -552,6 +555,10 @@ int main(int argc, char *argv[])
     optstruct opstru={0};
     catchopts(&opstru, argc, argv);
 
+    /* Let's set out output first */
+    printf("<html>\n<head>pafq fastq.gz file details</head>\n<body>\n<h3>pafq fastq.gz file details</h3>\n<p>\n<table>\n");
+    printf("<tr><td>Readset Name</td><td>Total seqs</td><td>Totalbases</td><td>Mx SeqSize</td><td>Min SeqSize</td><td>Max QualVal</td><td>Min QualVal</td></tr>\n");
+
     FILE *fpa;
     size_t compfsz;
     // unsigned char *fbf=malloc(GBUF*sizeof(unsigned char));
@@ -565,6 +572,7 @@ int main(int argc, char *argv[])
         processfq(opstru.inputs[i], fbf, compfsz);
         fclose(fpa);
     }
+    printf("</table>\n</p>\n</body>\n</html>\n");
 
     free(opstru.inputs);
     free(fbf);
