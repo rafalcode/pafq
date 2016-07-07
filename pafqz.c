@@ -5,6 +5,7 @@
 #include <string.h>
 #include<assert.h>
 #include<zlib.h>
+#include <locale.h>
 
 #define EBUF 2
 #define HBUF 4 /* harshly sized buffer */
@@ -551,6 +552,7 @@ int main(int argc, char *argv[])
     if(argc==1)
         usage(argv[0], 0);
 
+    setlocale(LC_NUMERIC, "");
     int i;
     optstruct opstru={0};
     catchopts(&opstru, argc, argv);
