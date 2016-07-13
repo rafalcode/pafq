@@ -8,7 +8,7 @@
 #include <locale.h>
 
 #define EBUF 2
-#define HBUF 4 /* harshly sized buffer */
+#define HBUF 64 /* somewhat harshly sized buffer */
 #define GBUF 32
 #define CHUNK 64
 #define MAXL 4
@@ -22,10 +22,10 @@
         (a)=realloc((a), (b)*sizeof(t)); \
     }
 
-typedef struct /* smmry_t */
+typedef struct /* smmry_, a per fastq-file struct */
 {
     char mn, mx;
-    unsigned totb; /* total number of bases called */
+    size_t totb /* total number of bases called */, totbacval /* total number of bases above a maximum value */;
     unsigned mnnbps; /* minimum number of bases per sequence */
     unsigned mxnbps; /* maximum number of bases per sequence */
 } smmry_t; /* Min and max value type */
@@ -45,6 +45,7 @@ typedef struct /* bva_t */
     unsigned sz;
     unsigned idsz;
     unsigned bf;
+    unsigned avist, avext; /* acceptable value index start, acceptable value index extent */
 } bva_t; /* base value array type */
 
 typedef struct  /* optstruct, a struct for the options */
@@ -59,7 +60,8 @@ void usage(char *progname, char yeserror)
 {
     printf("Usage instructions:\n");
     printf("\"%s\" is a program to parse multiple gzip-compressed fastq files\n", progname); 
-    printf("Please supply a list of fastq.gz filenames on the argument line.\n");
+    printf("and also to record the sub sequence index which is over a certain acceptable quality value.\n");
+    printf("Please supply first the phred33 \"acceptable value\" and then a list of fastq.gz filenames on the argument line.\n");
     if(yeserror)
         exit(EXIT_FAILURE);
     else
@@ -418,11 +420,14 @@ outro:
     return 0;
 }
 
-void ncharstova(unsigned char *bf, size_t *bfidx, bva_t *pa, unsigned nchars, smmry_t *smmry) /* read a number of chars to the value array */
+void ncharstova(unsigned char *bf, size_t *bfidx, bva_t *pa, unsigned nchars, smmry_t *smmry, unsigned char acval) /* read a number of chars to the value array */
 {
     int c;
     size_t currbfidx=*bfidx;
     unsigned cidx=0;
+    unsigned seenln=0; /* seenlength */
+    unsigned char seenav=0; /* seen the acceptable value */
+    /* We already know nchars */
     pa->va=malloc(nchars*sizeof(char));
     while( ( cidx!= nchars) ) {
         c = (int)bf[currbfidx++];
@@ -431,14 +436,24 @@ void ncharstova(unsigned char *bf, size_t *bfidx, bva_t *pa, unsigned nchars, sm
             smmry->mx = pa->va[cidx];
         if(pa->va[cidx]<smmry->mn)
             smmry->mn = pa->va[cidx];
-
+        if( !seenav & (pa->va[cidx] >= acval) ) {
+            smmry->mn = pa->avist =cidx;
+            seenln++;
+            seenav=1;
+        } else if( (seenav ==1) & (pa->va[cidx] >= acval) ) {
+            seenln++;
+        } else if( (seenav ==1) & (pa->va[cidx] < acval) ) { /* only gets first stretch (which may not be longest) of above-acceptable bases */
+            pa->avext =seenln;
+            seenav=2;
+            seenln=0;
+        }
         cidx++;
     }
     *bfidx=currbfidx;
     return;
 }
 
-char fillidtonl(unsigned char *bf, size_t compfsz, size_t *bfidx, bva_t *pa) /* read a number of chars to the value array */
+inline char fillidtonl(unsigned char *bf, size_t compfsz, size_t *bfidx, bva_t *pa) /* read chars to bva until end of line */
 {
     size_t currbfidx=*bfidx;
     int c;
@@ -465,7 +480,7 @@ char fillidtonl(unsigned char *bf, size_t compfsz, size_t *bfidx, bva_t *pa) /* 
     return 0;
 }
 
-void processfq(char *fname, unsigned char *bf, size_t compfsz)
+void processfq(char *fname, unsigned char *bf, size_t compfsz, unsigned char acval)
 {
     size_t sqidx=0UL, bfidx=0UL;
     int i, c;
@@ -513,7 +528,8 @@ void processfq(char *fname, unsigned char *bf, size_t compfsz)
             smmry.mnnbps = paa[ecou]->sz;
         smmry.totb += paa[ecou]->sz;
 
-        ncharstova(bf, &bfidx, paa[ecou], paa[ecou]->sz, &smmry); /* read a number of chars to the value array */
+        ncharstova(bf, &bfidx, paa[ecou], paa[ecou]->sz, &smmry, acval); /* read a number of chars to the value array */
+        smmry.totbacval += paa[ecou]->avext;
         ecou++;
         c=(int)bf[bfidx++];
         if( bfidx == compfsz-1 )
@@ -533,7 +549,7 @@ void processfq(char *fname, unsigned char *bf, size_t compfsz)
     //    printf("%s: Totalseqs: %u. Totalbases: %u. Mx sqsz: %u. Min sqsz: %u. Max. qualval=%c . Min qualval= %c\n", fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
     // OK get ready for print out
     char *fnp=strchr(fname+1, '.'); // +1 to avoid starting dot
-    printf("<tr><td>%.*s</td><td>%'u</td><td>%'u</td><td>%u</td><td>%u</td><td>%c</td><td>%c</td></tr>\n", (int)(fnp-fname), fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
+    printf("<tr><td>%.*s</td><td align=\"right\">%'u</td><td align=\"right\">%'zu</td><td align=\"right\">%'zu</td><td align=\"right\">%u</td><td align=\"right\">%u</td><td align=\"right\">%c</td><td align=\"right\">%c</td></tr>\n", (int)(fnp-fname), fname, ecou, smmry.totb, smmry.totbacval, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
 
 #ifdef DBG
     for(i=0;i<ecou;++i) 
@@ -549,9 +565,15 @@ void processfq(char *fname, unsigned char *bf, size_t compfsz)
 
 int main(int argc, char *argv[])
 {
-    if(argc==1)
+    if( (argc==1) | (argc==2) )
         usage(argv[0], 0);
 
+    if (strlen(argv[1]) > 1)
+        usage(argv[0], 0);
+
+    unsigned char acval=argv[1][0]; /* we accept a phred33 letter .. probably B, which is qualval 30 */
+
+    /* the first argument needs to be a phred value */
     setlocale(LC_NUMERIC, "");
     int i;
     optstruct opstru={0};
@@ -559,7 +581,7 @@ int main(int argc, char *argv[])
 
     /* Let's set out output first */
     printf("<html>\n<head>pafq fastq.gz file details</head>\n<body>\n<h3>pafq fastq.gz file details</h3>\n<p>\n<table>\n");
-    printf("<tr><td>Readset Name</td><td>Total seqs</td><td>Totalbases</td><td>Mx SeqSize</td><td>Min SeqSize</td><td>Max QualVal</td><td>Min QualVal</td></tr>\n");
+    printf("<tr><td>Readset Name</td><td>Total seqs</td><td>Totalbases</td><td>BasesAboveAcVal</td><td>Mx SeqSize</td><td>Min SeqSize</td><td>Max QualVal</td><td>Min QualVal</td></tr>\n");
 
     FILE *fpa;
     size_t compfsz;
@@ -571,7 +593,7 @@ int main(int argc, char *argv[])
         compfsz = fszfind(fpa);
         fbf=realloc(fbf, compfsz*sizeof(unsigned char));
         ret = infla(fpa, &fbf, &compfsz); // yes, this function DOES take care of enlarging bf as will no doubt be necessary !!!
-        processfq(opstru.inputs[i], fbf, compfsz);
+        processfq(opstru.inputs[i], fbf, compfsz, acval);
         fclose(fpa);
     }
     printf("</table>\n</p>\n</body>\n</html>\n");
