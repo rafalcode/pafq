@@ -229,6 +229,7 @@ int catchopts(optstruct *opstru, int argc, char **argv)
                 opstru->inputs = realloc(opstru->inputs, bfsz*sizeof(char*));
             }
             opstru->inputs[opstru->numinps++]= argv[index]; /* all these will ahve to be check to ensure they are proper files. */
+            printf("%s\n", argv[index]);
         }
         opstru->inputs = realloc(opstru->inputs, opstru->numinps*sizeof(char*)); /* normalize */
     }
@@ -577,7 +578,7 @@ int main(int argc, char *argv[])
     setlocale(LC_NUMERIC, "");
     int i;
     optstruct opstru={0};
-    catchopts(&opstru, argc, argv);
+    catchopts(&opstru, argc-1, argv+1);
 
     /* Let's set out output first */
     printf("<html>\n<head>pafq fastq.gz file details</head>\n<body>\n<h3>pafq fastq.gz file details</h3>\n<p>\n<table>\n");
