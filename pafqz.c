@@ -46,6 +46,7 @@ typedef struct /* bva_t */
     unsigned idsz;
     unsigned bf;
     unsigned avist, avext; /* acceptable value index start, acceptable value index extent */
+    unsigned txav; /* number of times acval crossed */
 } bva_t; /* base value array type */
 
 typedef struct  /* optstruct, a struct for the options */
@@ -61,7 +62,7 @@ void usage(char *progname, char yeserror)
     printf("Usage instructions:\n");
     printf("\"%s\" is a program to parse multiple gzip-compressed fastq files\n", progname); 
     printf("and also to record the sub sequence index which is over a certain acceptable quality value.\n");
-    printf("Please supply first the phred33 \"acceptable value\" and then a list of fastq.gz filenames on the argument line.\n");
+    printf("Please supply first the phred33 \"acceptable value\" in letter format and then a list of fastq.gz filenames on the argument line.\n");
     if(yeserror)
         exit(EXIT_FAILURE);
     else
@@ -427,6 +428,7 @@ void ncharstova(unsigned char *bf, size_t *bfidx, bva_t *pa, unsigned nchars, sm
     size_t currbfidx=*bfidx;
     unsigned cidx=0;
     unsigned seenln=0; /* seenlength */
+    unsigned timexav=0; /* number of times it crosses acval */
     unsigned char seenav=0; /* seen the acceptable value */
     /* We already know nchars */
     pa->va=malloc(nchars*sizeof(char));
@@ -438,8 +440,9 @@ void ncharstova(unsigned char *bf, size_t *bfidx, bva_t *pa, unsigned nchars, sm
         if(pa->va[cidx]<smmry->mn)
             smmry->mn = pa->va[cidx];
         if( !seenav & (pa->va[cidx] >= acval) ) {
-            smmry->mn = pa->avist =cidx;
+            smmry->mn = pa->avist = cidx;
             seenln++;
+            timexav++;
             seenav=1;
         } else if( (seenav ==1) & (pa->va[cidx] >= acval) ) {
             seenln++;
@@ -447,9 +450,11 @@ void ncharstova(unsigned char *bf, size_t *bfidx, bva_t *pa, unsigned nchars, sm
             pa->avext =seenln;
             seenav=2;
             seenln=0;
+            timexav++;
         }
         cidx++;
     }
+    pa->txav=timexav;
     *bfidx=currbfidx;
     return;
 }
@@ -582,7 +587,8 @@ int main(int argc, char *argv[])
 
     /* Let's set out output first */
     printf("<html>\n<head>pafq fastq.gz file details</head>\n<body>\n<h3>pafq fastq.gz file details</h3>\n<p>\n<table>\n");
-    printf("<tr><td>Readset Name</td><td>Total seqs</td><td>Totalbases</td><td>BasesAboveAcVal</td><td>Mx SeqSize</td><td>Min SeqSize</td><td>Max QualVal</td><td>Min QualVal</td></tr>\n");
+    // printf("<tr><td>Readset Name</td><td>Total seqs</td><td>Totalbases</td><td>BasesAboveAcVal</td><td>Mx SeqSize</td><td>Min SeqSize</td><td>Max QualVal</td><td>Min QualVal</td></tr>\n");
+    printf("<tr><td>Readset Name</td><td>Total seqs</td><td>Totalbases</td><td>Timesxav</td><td>Mx SeqSize</td><td>Min SeqSize</td><td>Max QualVal</td><td>Min QualVal</td></tr>\n");
 
     FILE *fpa;
     size_t compfsz;
