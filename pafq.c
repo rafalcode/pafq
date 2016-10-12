@@ -394,7 +394,9 @@ void processfq(char *fname)
         free_bva(paa[i]);
     paa=realloc(paa, ecou*sizeof(bva_t));
 
-    printf("file %s parsed. Totalseqs: %u. Totalbases: %u. Mx sqsz: %u. Min sqsz: %u. Max. qualval=%c . Min qualval= %c\n", fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
+    // printf("file %s parsed. Totalseqs: %u. Totalbases: %u. Mx sqsz: %u. Min sqsz: %u. Max. qualval=%c . Min qualval= %c\n", fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
+    // // instead of the above we go for a "wc" style output(decreasing numbers, no explanation). total bases, total num sequences
+    printf("%u %u\n", smmry.totb, ecou);
 
 #ifdef DBG
     for(i=0;i<ecou;++i) 
