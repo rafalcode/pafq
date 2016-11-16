@@ -13,3 +13,6 @@ accept an argument for "Number of Processes" and split the file into that number
 fq files.
 
 b106bit.fq is a test FASTQ file
+
+sradeint
+A program to de-interleave SRA fastq files
