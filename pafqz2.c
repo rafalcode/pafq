@@ -567,7 +567,7 @@ void processfq(char *fname, unsigned char *bf, size_t compfsz, unsigned char acv
 
     osmm2.totb += smmry.totb;
     osmm2.nsqs += ecou;
-    // osmm = &osmm2;
+    osmm = &osmm2;
 
 #ifdef DBG
     for(i=0;i<ecou;++i) 
