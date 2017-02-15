@@ -499,8 +499,6 @@ void processfq(char *fname, unsigned char *bf, size_t compfsz, unsigned char acv
     unsigned ecou=0, ebuf=EBUF;
     char *nxtok, retval;
 
-    osmmry_t osmm2=*osmm;
-
     bva_t **paa=malloc(ebuf*sizeof(bva_t*));
     for(i=0;i<ebuf;++i) 
         paa[i]=crea_bva();
@@ -565,9 +563,8 @@ void processfq(char *fname, unsigned char *bf, size_t compfsz, unsigned char acv
     char *fnp=strchr(fname+1, '.'); // +1 to avoid starting dot
     printf("<tr><td>%.*s</td><td align=\"right\">%'u</td><td align=\"right\">%'zu</td><td align=\"right\">%'zu</td><td align=\"right\">%u</td><td align=\"right\">%u</td><td align=\"right\">%c</td><td align=\"right\">%c</td></tr>\n", (int)(fnp-fname), fname, ecou, smmry.totb, smmry.totbacval, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
 
-    osmm2.totb += smmry.totb;
-    osmm2.nsqs += ecou;
-    osmm = &osmm2;
+    osmm->totb += smmry.totb;
+    osmm->nsqs += ecou;
 
 #ifdef DBG
     for(i=0;i<ecou;++i) 
