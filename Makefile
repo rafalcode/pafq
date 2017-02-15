@@ -2,7 +2,7 @@ CC=gcc
 DCFLAGS=-g -Wall
 CFLAGS=-O3
 SPECLIBS=-lz
-EXES=tkscan tkscan_dbg coumer fqspl strarr zread z7 pafq zread pafqz sradeint
+EXES=tkscan tkscan_dbg coumer fqspl strarr zread z7 pafq zread pafqz sradeint pafq2 pafqz2
 
 tkscan: tkscan.c
 	${CC} ${DCFLAGS} -o $@ $^
@@ -37,6 +37,9 @@ zread: zread.c
 
 # incorporate zread to be abel to parse a fastq.gz
 pafqz: pafqz.c
+	${CC} ${DCFLAGS} -o $@ $^ ${SPECLIBS}
+# have run into problems with undefined references on the 2 fillto functions.
+pafqz2: pafqz2.c
 	${CC} ${DCFLAGS} -o $@ $^ ${SPECLIBS}
 
 # Special SRA format where the + line also includes the READNAME _AND_ forward and reverse are alternately interleaved into one file
