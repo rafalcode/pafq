@@ -12,7 +12,7 @@
 #define GBUF 32
 #define CHUNK 64
 #define MAXL 4
-
+unsigned ifsz;
 #define ENDB "\n+\n" // this is the way fastq files are built
 
 /* Quick macro for conditionally enlarging an array */
@@ -257,6 +257,25 @@ void prtele(bva_t **paa, unsigned nel) /* print a certain element */
     for(i=0;i<paa[nel]->sz;++i) 
         putchar(paa[nel]->va[i]);
     putchar('\n');
+}
+
+void prtifsz(bva_t **paa, unsigned ecou) /* quick and dirty: print sequences over a certain size */
+{
+    int i, j;
+    ifsz =1000;
+    for(j=0;j<ecou;++j) {
+        if(paa[j]->sz >= ifsz) {
+            for(i=0;i<paa[j]->idsz;++i) 
+                putchar(paa[j]->id[i]);
+            putchar('\n');
+            for(i=0;i<paa[j]->sz;++i) 
+                putchar(paa[j]->bca[i]);
+            putchar('\n');
+            for(i=0;i<paa[j]->sz;++i) 
+                putchar(paa[j]->va[i]);
+            putchar('\n');
+        }
+    }
 }
 
 bva_t *crea_bva(void)
@@ -563,13 +582,14 @@ void processfq(char *fname, unsigned char *bf, size_t compfsz, unsigned char acv
     char *fnp=strchr(fname+1, '.'); // +1 to avoid starting dot
     printf("<tr><td>%.*s</td><td align=\"right\">%'u</td><td align=\"right\">%'zu</td><td align=\"right\">%'zu</td><td align=\"right\">%u</td><td align=\"right\">%u</td><td align=\"right\">%c</td><td align=\"right\">%c</td></tr>\n", (int)(fnp-fname), fname, ecou, smmry.totb, smmry.totbacval, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
 
-	osm->totb += smmry.totb;
-	osm->nsqs += ecou;
+    osm->totb += smmry.totb;
+    osm->nsqs += ecou;
 
 #ifdef DBG
     for(i=0;i<ecou;++i) 
         prtele(paa, i);
 #endif
+    prtifsz(paa, ecou);
 
     for(i=0;i<ecou;++i) 
         free_bva(paa[i]);
@@ -588,7 +608,7 @@ int main(int argc, char *argv[])
 
     unsigned char acval=argv[1][0]; /* we accept a phred33 letter .. probably B, which is qualval 30 */
 
-	osmmry_t osm={0};
+    osmmry_t osm={0};
 
     /* the first argument needs to be a phred value */
     setlocale(LC_NUMERIC, "");
