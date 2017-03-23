@@ -22,6 +22,12 @@
         (a)=realloc((a), (b)*sizeof(t)); \
     }
 
+typedef struct /* overall summmry, summarya per fastq-file struct */
+{
+    size_t totb /* total number of bases called */;
+    size_t nsqs;
+} osmmry_t;
+
 typedef struct /* smmry_, a per fastq-file struct */
 {
     char mn, mx;
@@ -422,6 +428,33 @@ outro:
     return 0;
 }
 
+inline char fillidtonl(unsigned char *bf, size_t compfsz, size_t *bfidx, bva_t *pa) /* read chars to bva until end of line */
+{
+    size_t currbfidx=*bfidx;
+    int c;
+    char STATE=0;
+    unsigned cidx=0, idbuf=HBUF;
+    for(;;) {
+        c = (int)bf[currbfidx++];
+        if(currbfidx >= compfsz) // we still want final processed
+            return 2;
+        else if( c== '\n')
+            break;
+        else if( (c=='@') & !STATE)
+            STATE=1;
+        if(STATE) {
+            CONDREALLOC(cidx, idbuf, HBUF, pa->id, char);
+            pa->id[cidx++]=c;
+        }
+    }
+    if(!STATE)
+        return 1;
+    pa->idsz=cidx;
+    pa->id=realloc(pa->id, pa->idsz*sizeof(char));
+    *bfidx=currbfidx;
+    return 0;
+}
+
 void ncharstova(unsigned char *bf, size_t *bfidx, bva_t *pa, unsigned nchars, smmry_t *smmry, unsigned char acval) /* read a number of chars to the value array */
 {
     int c;
@@ -459,34 +492,7 @@ void ncharstova(unsigned char *bf, size_t *bfidx, bva_t *pa, unsigned nchars, sm
     return;
 }
 
-inline char fillidtonl(unsigned char *bf, size_t compfsz, size_t *bfidx, bva_t *pa) /* read chars to bva until end of line */
-{
-    size_t currbfidx=*bfidx;
-    int c;
-    char STATE=0;
-    unsigned cidx=0, idbuf=HBUF;
-    for(;;) {
-        c = (int)bf[currbfidx++];
-        if(currbfidx >= compfsz) // we still want final processed
-            return 2;
-        else if( c== '\n')
-            break;
-        else if( (c=='@') & !STATE)
-            STATE=1;
-        if(STATE) {
-            CONDREALLOC(cidx, idbuf, HBUF, pa->id, char);
-            pa->id[cidx++]=c;
-        }
-    }
-    if(!STATE)
-        return 1;
-    pa->idsz=cidx;
-    pa->id=realloc(pa->id, pa->idsz*sizeof(char));
-    *bfidx=currbfidx;
-    return 0;
-}
-
-void processfq(char *fname, unsigned char *bf, size_t compfsz, unsigned char acval)
+void processfq(char *fname, unsigned char *bf, size_t compfsz, unsigned char acval, osmmry_t *osm)
 {
     size_t sqidx=0UL, bfidx=0UL;
     int i, c;
@@ -557,6 +563,9 @@ void processfq(char *fname, unsigned char *bf, size_t compfsz, unsigned char acv
     char *fnp=strchr(fname+1, '.'); // +1 to avoid starting dot
     printf("<tr><td>%.*s</td><td align=\"right\">%'u</td><td align=\"right\">%'zu</td><td align=\"right\">%'zu</td><td align=\"right\">%u</td><td align=\"right\">%u</td><td align=\"right\">%c</td><td align=\"right\">%c</td></tr>\n", (int)(fnp-fname), fname, ecou, smmry.totb, smmry.totbacval, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
 
+	osm->totb += smmry.totb;
+	osm->nsqs += ecou;
+
 #ifdef DBG
     for(i=0;i<ecou;++i) 
         prtele(paa, i);
@@ -579,6 +588,8 @@ int main(int argc, char *argv[])
 
     unsigned char acval=argv[1][0]; /* we accept a phred33 letter .. probably B, which is qualval 30 */
 
+	osmmry_t osm={0};
+
     /* the first argument needs to be a phred value */
     setlocale(LC_NUMERIC, "");
     int i;
@@ -600,10 +611,12 @@ int main(int argc, char *argv[])
         compfsz = fszfind(fpa);
         fbf=realloc(fbf, compfsz*sizeof(unsigned char));
         ret = infla(fpa, &fbf, &compfsz); // yes, this function DOES take care of enlarging bf as will no doubt be necessary !!!
-        processfq(opstru.inputs[i], fbf, compfsz, acval);
+        processfq(opstru.inputs[i], fbf, compfsz, acval, &osm);
         fclose(fpa);
     }
-    printf("</table>\n</p>\n</body>\n</html>\n");
+    printf("</table>\n</p>\n");
+    printf("<p>Overall total sequences = %zu</p>\n", osm.nsqs);
+    printf("<p>Overall total bases = %zu</p>\n", osm.totb);
 
     free(opstru.inputs);
     free(fbf);

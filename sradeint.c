@@ -277,6 +277,41 @@ void outnwn(bva_t **paa, unsigned ecou, char *fname) /* output in new filename *
     fclose(nfnp);
 }
 
+void outnwndummyid(bva_t **paa, unsigned ecou, char *fname) /* output in new filename */
+{
+    int i, j, jd2;
+    char *fnp=strchr(fname+1, '.'); 
+    char nfn[128]={0};
+    sprintf(nfn, "%.*s_nwn_R1.fastq", (int)(fnp-fname), fname);
+    FILE *nfnp=fopen(nfn, "w");
+    for(j=0;j<ecou;j+=2) {
+        jd2=j/2; /* necessary for forward and reverse reads to match */
+        fprintf(nfnp, "@F01714:28:000000000-AKE12:1:1101:%05d:%04d 1:N:0:7", jd2/1000, jd2%1000);
+        fputc('\n', nfnp);
+        for(i=0;i<paa[j]->sz;++i) 
+            fputc(paa[j]->bca[i], nfnp);
+        fprintf(nfnp, "%s", "\n+\n");
+        for(i=0;i<paa[j]->sz;++i) 
+            fputc(paa[j]->va[i], nfnp);
+        fputc('\n', nfnp);
+    }
+    fclose(nfnp);
+    sprintf(nfn, "%.*s_nwn_R2.fastq", (int)(fnp-fname), fname);
+    nfnp=fopen(nfn, "w");
+    for(j=1;j<ecou;j+=2) {
+        jd2=j/2; /* necessary for forward and reverse reads to match */
+        fprintf(nfnp, "@F01714:28:000000000-AKE12:1:1101:%05d:%04d 2:N:0:7", jd2/1000, jd2%1000);
+        fputc('\n', nfnp);
+        for(i=0;i<paa[j]->sz;++i) 
+            fputc(paa[j]->bca[i], nfnp);
+        fprintf(nfnp, "%s", "\n+\n");
+        for(i=0;i<paa[j]->sz;++i) 
+            fputc(paa[j]->va[i], nfnp);
+        fputc('\n', nfnp);
+    }
+    fclose(nfnp);
+}
+
 void prtele(bva_t **paa, unsigned nel) /* print a certain element */
 {
     int i;
@@ -629,7 +664,7 @@ void processfq(char *fname, unsigned char *bf, size_t compfsz, unsigned char acv
     for(i=0;i<ecou;++i) 
         prtele(paa, i);
 #endif
-    outnwn(paa, ecou, fname);
+    outnwndummyid(paa, ecou, fname);
 
     for(i=0;i<ecou;++i) 
         free_bva(paa[i]);
