@@ -2,7 +2,7 @@ CC=gcc
 DCFLAGS=-g -Wall
 CFLAGS=-O3
 SPECLIBS=-lz
-EXES=tkscan tkscan_dbg coumer fqspl strarr zread z7 pafq zread pafqz sradeint pafq2 pafqz2
+EXES=tkscan tkscan_dbg coumer fqspl strarr zread z7 pafq zread pafqz sradeint pafq2 pafqz2 pafqz3
 
 tkscan: tkscan.c
 	${CC} ${DCFLAGS} -o $@ $^
@@ -40,6 +40,9 @@ pafqz: pafqz.c
 	${CC} ${DCFLAGS} -o $@ $^ ${SPECLIBS}
 # have run into problems with undefined references on the 2 fillto functions.
 pafqz2: pafqz2.c
+	${CC} ${DCFLAGS} -o $@ $^ ${SPECLIBS}
+# pafqz has been really messed up ... v3 derived from original
+pafqz3: pafqz3.c
 	${CC} ${DCFLAGS} -o $@ $^ ${SPECLIBS}
 
 # Special SRA format where the + line also includes the READNAME _AND_ forward and reverse are alternately interleaved into one file
