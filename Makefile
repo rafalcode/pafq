@@ -36,12 +36,17 @@ zread: zread.c
 	${CC} ${DCFLAGS} -o $@ $^ ${SPECLIBS}
 
 # incorporate zread to be abel to parse a fastq.gz
+# real problems getting soem of the functions to inline .. don't have time to solve that.
+# # I would say, don't bother. Investigate only when program becomes very slow.
+# all these pafqz are similar there was an attempt to input a quality threshold
 pafqz: pafqz.c
 	${CC} ${DCFLAGS} -o $@ $^ ${SPECLIBS}
 # have run into problems with undefined references on the 2 fillto functions.
 pafqz2: pafqz2.c
 	${CC} ${DCFLAGS} -o $@ $^ ${SPECLIBS}
 # pafqz has been really messed up ... v3 derived from original
+# The ASCII of the phred must be used as first arg.
+# outputs html
 pafqz3: pafqz3.c
 	${CC} ${DCFLAGS} -o $@ $^ ${SPECLIBS}
 

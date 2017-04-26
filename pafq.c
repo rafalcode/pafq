@@ -1,3 +1,4 @@
+#include <getopt.h>
 #include <ctype.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -250,7 +251,8 @@ cl_t *creaclstr(char *stg, int ssz) /* create empty ring of size ssz */
     return mou;
 }
 
-inline char fillbctoma(FILE *fin, char *str2ma, size_t *sqidx, bva_t *pa) /* fill base call array till match */
+// inline char fillbctoma(FILE *fin, char *str2ma, size_t *sqidx, bva_t *pa) /* fill base call array till match */
+char fillbctoma(FILE *fin, char *str2ma, size_t *sqidx, bva_t *pa) /* fill base call array till match */
 {
     int c, ssz;
     char *scanstr=scas(str2ma, &ssz);

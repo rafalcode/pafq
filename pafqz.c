@@ -406,7 +406,7 @@ cl_t *creaclstr(char *stg, int ssz) /* create empty ring of size ssz */
     return mou;
 }
 
-inline char fillbctoma(unsigned char *bf, size_t compfsz, size_t *bfidx, char *str2ma, size_t *sqidx, bva_t *pa) /* fill base call array till match */
+char fillbctoma(unsigned char *bf, size_t compfsz, size_t *bfidx, char *str2ma, size_t *sqidx, bva_t *pa) /* fill base call array till match */
 {
     int c, ssz;
     size_t currbfidx=*bfidx;
@@ -447,7 +447,7 @@ outro:
     return 0;
 }
 
-inline char fillidtonl(unsigned char *bf, size_t compfsz, size_t *bfidx, bva_t *pa) /* read chars to bva until end of line */
+char fillidtonl(unsigned char *bf, size_t compfsz, size_t *bfidx, bva_t *pa) /* read chars to bva until end of line */
 {
     size_t currbfidx=*bfidx;
     int c;
