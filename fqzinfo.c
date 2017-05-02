@@ -54,26 +54,6 @@ typedef struct /* bva_t */
     unsigned txav; /* number of times acval crossed */
 } bva_t; /* base value array type */
 
-typedef struct  /* optstruct, a struct for the options */
-{
-    int aflg, bflg;
-    char *cval;
-    char **inputs;
-    int numinps;
-} optstruct;
-
-void usage(char *progname, char yeserror)
-{
-    printf("Usage instructions:\n");
-    printf("\"%s\" is a program to parse multiple gzip-compressed fastq files\n", progname); 
-    printf("and also to record the sub sequence index which is over a certain acceptable quality value.\n");
-    printf("Please supply first the phred33 \"acceptable value\" in letter format and then a list of fastq.gz filenames on the argument line.\n");
-    if(yeserror)
-        exit(EXIT_FAILURE);
-    else
-        exit(EXIT_SUCCESS);
-}
-
 size_t fszfind(FILE *fp)
 {
     fseek(fp, 0, SEEK_END);
@@ -196,53 +176,6 @@ void zerr(int ret) /* report a zlib or i/o error */
 }
 
 /* compress or decompress from stdin to stdout */
-int catchopts(optstruct *opstru, int argc, char **argv)
-{
-    int index, c, bfsz=EBUF;
-    opterr = 0;
-
-    while ((c = getopt (argc, argv, "abc:")) != -1)
-        switch (c) {
-            case 'a':
-                opstru->aflg = 1;
-                break;
-            case 'b':
-                opstru->bflg = 1;
-                break;
-            case 'c':
-                opstru->cval = optarg;
-                break;
-            case '?':
-                if (optopt == 'c')
-                    fprintf (stderr, "Option -%c requires an argument.\n", optopt);
-                else if (isprint (optopt))
-                    fprintf (stderr, "Unknown option `-%c'.\n", optopt);
-                else
-                    fprintf (stderr,
-                            "Unknown option character `\\x%x'.\n",
-                            optopt);
-                return 1;
-            default:
-                abort();
-        }
-
-    opstru->numinps=0;
-    if(optind<argc) {
-        opstru->inputs=malloc(bfsz*sizeof(char*));
-        for (index = optind; index < argc; index++) {
-            if(opstru->numinps==bfsz) {
-                bfsz += EBUF;
-                opstru->inputs = realloc(opstru->inputs, bfsz*sizeof(char*));
-            }
-            opstru->inputs[opstru->numinps++]= argv[index]; /* all these will ahve to be check to ensure they are proper files. */
-            printf("%s\n", argv[index]);
-        }
-        opstru->inputs = realloc(opstru->inputs, opstru->numinps*sizeof(char*)); /* normalize */
-    }
-
-    return 0;
-}
-
 void prtele(bva_t **paa, unsigned nel) /* print a certain element */
 {
     int i;
@@ -492,7 +425,7 @@ void ncharstova(unsigned char *bf, size_t *bfidx, bva_t *pa, unsigned nchars, sm
     return;
 }
 
-void processfq(char *fname, unsigned char *bf, size_t compfsz, unsigned char acval, osmmry_t *osm)
+void processfq(char *fname, unsigned char *bf, size_t compfsz, osmmry_t *osm)
 {
     size_t sqidx=0UL, bfidx=0UL;
     int i, c;
@@ -557,7 +490,6 @@ void processfq(char *fname, unsigned char *bf, size_t compfsz, unsigned char acv
         free_bva(paa[i]);
     paa=realloc(paa, ecou*sizeof(bva_t));
 
-    //    printf("%s: Totalseqs: %u. Totalbases: %u. Mx sqsz: %u. Min sqsz: %u. Max. qualval=%c . Min qualval= %c\n", fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
     // OK get ready for print out
     char *fnp=strchr(fname+1, '.'); // +1 to avoid starting dot
     printf("%.*s\t%'u\t%'zu\t%u\t%u\t%c\t%c\n", (int)(fnp-fname), fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
@@ -585,33 +517,26 @@ int main(int argc, char *argv[])
     }
     osmmry_t osm={0};
 
-    /* the first argument needs to be a phred value */
-    setlocale(LC_NUMERIC, "");
-    int i;
-    optstruct opstru={0};
-    catchopts(&opstru, argc-1, argv+1);
-
     /* Let's set out output first */
-    printf("%20s\t%20s\t%20s\t%20s\t%20s\t%20s\t%20s\n", "Readset Name", "NumSeqs", "NumBases", "Mx SeqSize", "Min SeqSize", "Max QualVal", "Min QualVal");
+    printf("%20s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n", "Readset Name", "NumSeqs", "NumBases", "Mx SeqSize", "Min SeqSize", "Max QualVal", "Min QualVal");
 
     FILE *fpa;
     size_t compfsz;
     // unsigned char *fbf=malloc(GBUF*sizeof(unsigned char));
     unsigned char *fbf=NULL;
-    int ret;
-    for(i=0;i<opstru.numinps;i++) {
-        fpa=fopen(opstru.inputs[i], "r");
+    int i, ret;
+    for(i=1;i<argc;i++) {
+        fpa=fopen(argv[i], "r");
         compfsz = fszfind(fpa);
         fbf=realloc(fbf, compfsz*sizeof(unsigned char));
         ret = infla(fpa, &fbf, &compfsz); // yes, this function DOES take care of enlarging bf as will no doubt be necessary !!!
-        processfq(opstru.inputs[i], fbf, compfsz, acval, &osm);
+        processfq(argv[i], fbf, compfsz, &osm);
         fclose(fpa);
     }
 
     printf("Overall total sequences = %zu\n", osm.nsqs);
     printf("Overall total bases = %zu\n", osm.totb);
 
-    free(opstru.inputs);
     free(fbf);
 
     return ret;
