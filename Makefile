@@ -2,7 +2,7 @@ CC=gcc
 DCFLAGS=-g -Wall
 CFLAGS=-O3
 SPECLIBS=-lz
-EXES=tkscan tkscan_dbg coumer fqspl strarr zread z7 pafq zread pafqz sradeint pafq2 pafqz2 pafqz3
+EXES=tkscan tkscan_dbg coumer fqspl strarr zread z7 pafq zread pafqz sradeint pafq2 pafqz2 pafqz3 fqzinfo
 
 tkscan: tkscan.c
 	${CC} ${DCFLAGS} -o $@ $^
@@ -48,6 +48,9 @@ pafqz2: pafqz2.c
 # The ASCII of the phred must be used as first arg.
 # outputs html
 pafqz3: pafqz3.c
+	${CC} ${DCFLAGS} -o $@ $^ ${SPECLIBS}
+# Sometimes you just want a quick command whihch will give yo the barest, yet most esenitanl info on a fastq file.
+fqzinfo: fqzinfo.c
 	${CC} ${DCFLAGS} -o $@ $^ ${SPECLIBS}
 
 # Special SRA format where the + line also includes the READNAME _AND_ forward and reverse are alternately interleaved into one file
