@@ -492,7 +492,7 @@ void processfq(char *fname, unsigned char *bf, size_t compfsz, osmmry_t *osm)
 
     // OK get ready for print out
     char *fnp=strchr(fname+1, '.'); // +1 to avoid starting dot
-    printf("%.*s\t%'u\t%'zu\t%u\t%u\t%c\t%c\n", (int)(fnp-fname), fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
+    printf("%-*s\t%'10u\t%'10zu\t%10u\t%10u\t%10c\t%10c\n", (int)(fnp-fname), fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
     osm->totb += smmry.totb;
     osm->nsqs += ecou;
 
@@ -511,14 +511,15 @@ void processfq(char *fname, unsigned char *bf, size_t compfsz, osmmry_t *osm)
 
 int main(int argc, char *argv[])
 {
-    if(argc!=2) {
+    if(argc==1) {
         printf("Error. Pls supply arguments (single or multiple fastq files, must be compressed via gzip.\n");
         exit(EXIT_FAILURE);
     }
+    setlocale(LC_NUMERIC, ""); /* for the thousands' separator */
     osmmry_t osm={0};
 
     /* Let's set out output first */
-    printf("%20s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n", "Readset Name", "NumSeqs", "NumBases", "Mx SeqSize", "Min SeqSize", "Max QualVal", "Min QualVal");
+    printf("%s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n", "Readset Name", "NumSeqs", "NumBases", "MxReadLen", "MinReadSize", "MaxQualVal", "MinQualVal");
 
     FILE *fpa;
     size_t compfsz;
@@ -534,8 +535,8 @@ int main(int argc, char *argv[])
         fclose(fpa);
     }
 
-    printf("Overall total sequences = %zu\n", osm.nsqs);
-    printf("Overall total bases = %zu\n", osm.totb);
+    printf("Overall total sequences = %'zu\n", osm.nsqs);
+    printf("Overall total bases = %'zu\n", osm.totb);
 
     free(fbf);
 
