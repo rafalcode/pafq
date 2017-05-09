@@ -492,7 +492,9 @@ void processfq(char *fname, unsigned char *bf, size_t compfsz, osmmry_t *osm)
 
     // OK get ready for print out
     char *fnp=strchr(fname+1, '.'); // +1 to avoid starting dot
-    printf("%-*s\t%'10u\t%'10zu\t%10u\t%10u\t%10c\t%10c\n", (int)(fnp-fname), fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
+    // printf("%-*s\t%'10u\t%'10zu\t%10u\t%10u\t%10c\t%10c\n", (int)(fnp-fname), fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
+    // printf("%-*s\t%'10u\t%'10zu\t%10u\t%10u\t%10c\t%10c\n", (int)(fnp-fname), fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
+    printf("FRN\t%-*s\tNSQ\t%'u\tNBA\t%'zu\tMXSZ\t%u\tMNSZ\t%u\tMXQL\t%c\tMNQL\t%c\n", (int)(fnp-fname), fname, ecou, smmry.totb, smmry.mxnbps, smmry.mnnbps, smmry.mx, smmry.mn);
     osm->totb += smmry.totb;
     osm->nsqs += ecou;
 
@@ -512,14 +514,17 @@ void processfq(char *fname, unsigned char *bf, size_t compfsz, osmmry_t *osm)
 int main(int argc, char *argv[])
 {
     if(argc==1) {
-        printf("Error. Pls supply arguments (single or multiple fastq files, must be compressed via gzip.\n");
+        printf("Usage: fqzinfo <fastq.gz file 1> [<fastq.gz file 2> etc.]");
+        printf("A program to give essential details of fastq.gz file in one-line form\n");
+        printf("Abbreviation meanings:\n\tFN fastq.gz file name; NSQ Number of reads(sequences); NBA Number of Bases; MXSZ Maxmimum size of sequence/read; MNSZ Minimum size of sequences/reads\n");
+       printf("\tMNSZ Minimum size of sequences/reads; MXQL maximum quality of sequences/reads in Phred coding; MNQL Minimum quality of sequences/reads in Phred coding;\n");
         exit(EXIT_FAILURE);
     }
     setlocale(LC_NUMERIC, ""); /* for the thousands' separator */
     osmmry_t osm={0};
 
     /* Let's set out output first */
-    printf("%s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n", "Readset Name", "NumSeqs", "NumBases", "MxReadLen", "MinReadSize", "MaxQualVal", "MinQualVal");
+    // printf("%s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n", "Readset Name", "NumSeqs", "NumBases", "MxReadLen", "MinReadSize", "MaxQualVal", "MinQualVal");
 
     FILE *fpa;
     size_t compfsz;
@@ -528,6 +533,10 @@ int main(int argc, char *argv[])
     int i, ret;
     for(i=1;i<argc;i++) {
         fpa=fopen(argv[i], "r");
+        if(fpa == NULL) {
+            printf("Error opening file with name \"%s\", skipping.\n", argv[i]); 
+            continue;
+        }
         compfsz = fszfind(fpa);
         fbf=realloc(fbf, compfsz*sizeof(unsigned char));
         ret = infla(fpa, &fbf, &compfsz); // yes, this function DOES take care of enlarging bf as will no doubt be necessary !!!
@@ -535,8 +544,8 @@ int main(int argc, char *argv[])
         fclose(fpa);
     }
 
-    printf("Overall total sequences = %'zu\n", osm.nsqs);
-    printf("Overall total bases = %'zu\n", osm.totb);
+    // printf("Overall total sequences = %'zu\n", osm.nsqs);
+    // printf("Overall total bases = %'zu\n", osm.totb);
 
     free(fbf);
 
