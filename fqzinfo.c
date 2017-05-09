@@ -514,10 +514,10 @@ void processfq(char *fname, unsigned char *bf, size_t compfsz, osmmry_t *osm)
 int main(int argc, char *argv[])
 {
     if(argc==1) {
-        printf("Usage: fqzinfo <fastq.gz file 1> [<fastq.gz file 2> etc.]");
-        printf("A program to give essential details of fastq.gz file in one-line form\n");
-        printf("Abbreviation meanings:\n\tFN fastq.gz file name; NSQ Number of reads(sequences); NBA Number of Bases; MXSZ Maxmimum size of sequence/read; MNSZ Minimum size of sequences/reads\n");
-       printf("\tMNSZ Minimum size of sequences/reads; MXQL maximum quality of sequences/reads in Phred coding; MNQL Minimum quality of sequences/reads in Phred coding;\n");
+        printf("Usage: fqzinfo <fastq.gz file 1> [<fastq.gz file 2> etc.]\n");
+        printf("A program to give essential details of fastq.gz files in one-line form.\n");
+        printf("Abbreviation meanings:\n\tFN fastq.gz file name; NSQ Number of reads(sequences); NBA total number of bases in file; MXSZ Longest sequence/read size; MNSZ Smallest sequence/read size.\n");
+       printf("\tMXQL Highest sequence/read quality in Phred coding; MNQL Lowest sequence/read quality in Phred coding.\n");
         exit(EXIT_FAILURE);
     }
     setlocale(LC_NUMERIC, ""); /* for the thousands' separator */
