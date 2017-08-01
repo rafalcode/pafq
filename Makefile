@@ -1,7 +1,8 @@
 CC=gcc
 DCFLAGS=-g -Wall
 CFLAGS=-O3
-SPECLIBS=-lz
+# SPECLIBS=-lz
+SPECLIBS=`pkg-config --libs zlib`
 EXES=tkscan tkscan_dbg coumer fqspl strarr zread z7 pafq zread pafqz sradeint pafq2 pafqz2 pafqz3 fqzinfo
 
 tkscan: tkscan.c
@@ -41,6 +42,13 @@ zread: zread.c
 # all these pafqz are similar there was an attempt to input a quality threshold
 pafqz: pafqz.c
 	${CC} ${DCFLAGS} -o $@ $^ ${SPECLIBS}
+
+# Note on the above:
+# if you want a specific library to be used, this seems to be the only way:
+# ${CC} ${DCFLAGS} -o $@ $^ -L/usr/local/Modules/modulefiles/tools/zlib/1.2.8/lib ${SPECLIBS}
+# or
+# ${CC} ${DCFLAGS} -o $@ $^ `pkg-config --libs zlib`
+
 # have run into problems with undefined references on the 2 fillto functions.
 pafqz2: pafqz2.c
 	${CC} ${DCFLAGS} -o $@ $^ ${SPECLIBS}

@@ -103,6 +103,8 @@ int infla(FILE *source, unsigned char **bf, size_t *bfsz)
     strm.msg = Z_NULL;
 
     int ret = inflateInit2(&strm , 16+MAX_WBITS); /* mere activation, source is not involved yet */
+    // beware this prog is a guinea pig for my library linking problems.
+    int ret2;
     if (ret != Z_OK)
         return ret;
 
@@ -129,6 +131,8 @@ int infla(FILE *source, unsigned char **bf, size_t *bfsz)
             strm.avail_out = CHUNK;
             strm.next_out = out;
             ret = inflate(&strm, Z_NO_FLUSH);
+            // here is where I test function which is only available in zlib 1.2.8!
+            ret2=inflateMark(&strm);
             assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
             switch (ret) {
                 case Z_NEED_DICT:
